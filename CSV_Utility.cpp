@@ -36,7 +36,7 @@ void CSV_Utility::ChangeDelimiter(char delimiter)
 }
 
 //template<class T>
-int CSV_Utility::WriteCSV(const std::string filename, std::vector<int> const& values)
+int CSV_Utility::WriteFullCSV(const std::string filename, std::vector<int> const& values)
 {
 	// Get the Logger instance if its included
 #ifdef CPP_LOGGER
