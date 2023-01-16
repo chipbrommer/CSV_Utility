@@ -136,3 +136,85 @@ int CSV_Utility::ParseCSVFile(FILE* handle, std::vector<T>& values)
 {
 
 }
+
+int CSV_Utility::OpenFile()
+{
+	// Get the Logger instance if its included
+#ifdef CPP_LOGGER
+	Log* log = log->GetInstance();
+#endif
+
+	// Verify outputFile is a valid file path / file name
+	size_t i = mFilename.rfind('/', mFilename.length());
+	if (i == std::string::npos)
+	{
+#ifdef CPP_LOGGER
+		log->AddEntry(LOG_LEVEL::LOG_ERROR, mUser, "Log path is not a valid path.");
+#else
+		printf_s("%s - Log path is not a valid path.\n", mUser.c_str());
+#endif
+		return -1;
+	}
+	std::string directoryPath = mFilename.substr(0, i);
+
+	// Make the directory if it doesn't exist
+	struct stat st = { 0 };
+	if (stat(directoryPath.c_str(), &st) == -1)
+	{
+		int made = 0;
+#ifdef _WIN32
+		made = _mkdir(directoryPath.c_str());
+#else
+		made = mkdir(directoryPath.c_str(), 0777);
+#endif
+		if (made == -1)
+		{
+			char buffer[256];
+			strerror_s(buffer, sizeof(buffer), errno); // get string message from errno, XSI-compliant version
+
+#ifdef CPP_LOGGER
+			log->AddEntry(LOG_LEVEL::LOG_ERROR, mUser, "Error %s", buffer);
+#else
+			printf_s("%s - Error %s\n", mUser.c_str(), buffer);
+#endif
+		}
+	}
+
+	// Check if outputFile has an extension, if not, add default extension.
+	if (!std::filesystem::path(mFilename).has_extension())
+	{
+		mFilename += mExtension;
+#ifdef CPP_LOGGER
+		log->AddEntry(LOG_LEVEL::LOG_INFO, mUser, "OpenFile - filename has no extension, adding default extension: %s", mExtension.c_str());
+#else
+		printf_s("%s - OpenFile - filename has no extension, adding default extension: %s.\n", mUser.c_str(), mExtension.c_str());
+#endif
+	}
+
+	// Open file and catch a bad handle
+	int open = fopen_s(&mHandle, mFilename.c_str(), "w");
+	if (open != 0)
+	{
+#ifdef CPP_LOGGER
+		log->AddEntry(LOG_LEVEL::LOG_ERROR, mUser, "Failed to open the output file.");
+#else
+		printf_s("%s - Failed to open the output file.\n", mUser.c_str());
+#endif
+		return -1;
+	}
+
+	// Success
+#ifdef CPP_LOGGER
+	log->AddEntry(LOG_LEVEL::LOG_INFO, mUser, "File open successful: %s", mFilename.c_str());
+#else
+	printf_s("%s - File open successful: %s\n", mUser.c_str(), mFilename.c_str());
+#endif
+
+	return 1;
+}
+
+int CSV_Utility::CloseFile()
+{
+	// TODO - check if open before attempting to close. 
+	fclose(mHandle);
+}
