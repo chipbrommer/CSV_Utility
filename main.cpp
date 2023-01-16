@@ -6,7 +6,7 @@
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    std::vector<int> temp{ 0,1,2,3,4,5,6 };
     CSV_Utility csv;
-    csv.ChangeDelimiter(';');
+    csv.WriteCSV((char*)"test/out.csv", temp);
 }
