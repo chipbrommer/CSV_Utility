@@ -42,6 +42,23 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+	/** Returned by get_file_info() */
+struct CSVFileInfo 
+{
+	std::string filename;					// Filename 
+	std::vector<std::string> col_names;		// CSV column names 
+	char delimiter;							// Delimiting character 
+	size_t n_rows;							// Number of rows in a file 
+	size_t n_cols;							// Number of columns in a CSV 
+};
+
+enum class UTILITY_MODE : const int
+{
+	WRITE = 0,
+	READ = 1,
+	CLEAR = 2
+};
+
 //! @brief A CSV utility class to parse and write CSV files. 
 class CSV_Utility
 {
@@ -61,9 +78,11 @@ public:
 	//! @param delimiter - Character to use as a delimiter.
 	void ChangeDelimiter(char delimiter);
 
-	int WriteColumnHeaders(const FILE* handle, const std::vector<std::string>& names);
+	bool ChangeCSVUtilityMode(UTILITY_MODE mode);
 
-	int WriteRow(const FILE* handle, std::vector<int>const& values);
+	int WriteColumnHeaders(const std::vector<std::string>& names);
+
+	//int WriteRow(std::vector<int>const& values);
 
 	//! @brief Write a full group of data to a CSV file
 	//! @param filename - char array containing the filename to be opened and written to
@@ -72,20 +91,19 @@ public:
 	//template<class T>
 	int WriteFullCSV(const std::string filename, const std::vector<int>& values);
 
-	int GetColumnNames(const std::vector<std::string>& names);
+	//int GetColumnNames(const std::vector<std::string>& names);
 
-	int GetNumberOfRows();
+	//int GetNumberOfRows();
 
-	int GetNumberOfRows(const std::string filename);
+	//int GetNumberOfRows(const std::string filename);
 
-	int GetNumberOfRows(const FILE* handle);
+	//int GetNumberOfRows(const FILE* handle);
 
 	//! @brief Parse a CSV Buffer.
 	//! @param buffer - A char buffer to be parsed.
 	//! @param values - A vector to store the parsed values into.
 	//! @return -1 on error, else the number of values successfully parsed. 
-	template <typename T>
-	int ParseCSVBuffer(const char* buffer, std::vector<T>& values);
+	int ParseCSVBuffer(char* buffer, const std::vector<std::string>& values);
 
 	//! @brief Read in a CSV file and parse it. 
 	//! @param handle - A pointer to a file handle. 
@@ -94,31 +112,39 @@ public:
 	template <typename T>
 	int ParseCSVFile(FILE* handle, std::vector<T>& values);
 
-	int PrintCSVData(int rows, int columns, std::vector<int>& values);
+	//int PrintCSVData(int rows, int columns, std::vector<int>& values);
 
-	bool EndOfFile();
+	//! @brief Check if the file is at the end.
+	//! @return bool: true if the end, false if not.
+	bool IsEndOfFile();
 
-	int ClearFile();
+	//! @brief Clear the contents of the file
+	//! @return bool: true if successful, false if failed.
+	bool ClearFile();
 
+	//! @brief Get the file size of the file. 
+	//! @return size_t: The size of the file.
 	size_t GetFileSize();
 
 	//! @brief Opens a file stream
-	//! @return int: -1 on error, 0 if successful
-	int OpenFile();
+	//! @return bool: true if successful, false if failed. 
+	bool OpenFile();
 
-	//! @brief Check if a file stream is open
+	//! @brief Check if a file stream is open.
 	//! @return bool: true if open, false if closed. 
 	bool IsFileOpen();
 
 	//! @brief Closes a file if its open.
-	//! @return int: -1 if no file open, 0 if successful
-	int CloseFile();
+	//! @return bool: true if successful, false if failed or not open.
+	bool CloseFile();
 
 protected:
 private:
 	std::string		mUser;					//!< Name for the class when using CPP_Logger
-	char			mDelimeter;				//!< char used as a delimiter when parsing
-	std::string		mExtension;				//!< File extension to be used. 
-	std::string		mFilename;
-	std::ofstream	mFile;
+	//CSVFileInfo		dCSVFileInfo;			//!< Current CSV File
+	std::fstream	mFile;					//!< File stream for in and out
+	std::string		mExtension;				//!< File Extension
+	UTILITY_MODE	mMode;					//!< Current mode of the utility
+	std::string		mFilename;				//!< Current filename
+	char			mDelimiter;				//!< Delimiter to use in file output
 };

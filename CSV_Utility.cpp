@@ -21,7 +21,7 @@
 CSV_Utility::CSV_Utility()
 {
 	mUser = "CSVUtility";
-	mDelimeter = ',';
+	mDelimiter = ',';
 	mExtension = ".csv";
 }
 
@@ -29,7 +29,7 @@ CSV_Utility::CSV_Utility(std::string filename)
 {
 	mFilename = filename;
 	mUser = "CSVUtility";
-	mDelimeter = ',';
+	mDelimiter = ',';
 	mExtension = ".csv";
 }
 
@@ -40,7 +40,7 @@ CSV_Utility::~CSV_Utility()
 
 int CSV_Utility::SetFileName(const std::string filename)
 {
-	if (!CheckFileOpen())
+	if (!IsFileOpen())
 	{
 		mFilename = filename;
 		return 1;
@@ -52,7 +52,53 @@ int CSV_Utility::SetFileName(const std::string filename)
 void CSV_Utility::ChangeDelimiter(char delimiter)
 {
 	printf_s("Received new delimiter: %c\n", delimiter);
-	mDelimeter = delimiter;
+	mDelimiter = delimiter;
+}
+
+bool CSV_Utility::ChangeCSVUtilityMode(UTILITY_MODE mode)
+{
+	if (mFile.is_open())
+	{
+		CloseFile();
+	}
+
+	mMode = mode;
+
+	if(OpenFile() && (mMode == mode))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+int CSV_Utility::WriteColumnHeaders(const std::vector<std::string>& names)
+{
+	if (!mFile.is_open())
+	{
+		return -1;
+	}
+
+	int count = 0;
+
+	for (std::vector<std::string>::const_iterator it = names.begin(); it != names.end(); ++it)
+	{
+		mFile << *it;
+
+		if (it + 1 != names.end())
+		{
+			mFile << mDelimiter;
+		}
+
+		count++;
+	}
+
+	return count;
+}
+
+int WriteRow(std::vector<int>const& values)
+{
+	return 0;
 }
 
 //template<class T>
@@ -130,7 +176,7 @@ int CSV_Utility::WriteFullCSV(const std::string filename, std::vector<int> const
 	{
 		for (std::vector<int>::const_iterator it = values.begin(); it != values.end(); ++it)
 		{
-			fprintf_s(handle, "%d%c", *it, mDelimeter);
+			fprintf_s(handle, "%d%c", *it, mDelimiter);
 		}
 
 		printf("Size: %zd\n", values.size());
@@ -145,8 +191,8 @@ int CSV_Utility::WriteFullCSV(const std::string filename, std::vector<int> const
 	return 1;
 }
 
-template<typename T>
-int CSV_Utility::ParseCSVBuffer(char* buffer, std::vector<T>& values)
+//template<typename T>
+int CSV_Utility::ParseCSVBuffer(char* buffer, const std::vector<std::string>& values)
 {
 	return 0;
 }
@@ -154,7 +200,26 @@ int CSV_Utility::ParseCSVBuffer(char* buffer, std::vector<T>& values)
 template <typename T>
 int CSV_Utility::ParseCSVFile(FILE* handle, std::vector<T>& values)
 {
+	return 0;
+}
 
+bool CSV_Utility::IsEndOfFile()
+{
+	return mFile.eof();
+}
+
+bool CSV_Utility::ClearFile()
+{
+	if (mFile.is_open())
+	{
+		mFile.close();
+	}
+
+	mFile.open(mFilename, std::ios::out | std::ios::trunc);
+
+	mFile.close();
+
+	return true;
 }
 
 size_t CSV_Utility::GetFileSize()
@@ -165,10 +230,11 @@ size_t CSV_Utility::GetFileSize()
 		return -1;
 	}
 
-
+	// TODO - get file data and return
+	return 0;
 }
 
-int CSV_Utility::OpenFile()
+bool CSV_Utility::OpenFile()
 {
 	// Get the Logger instance if its included
 #ifdef CPP_LOGGER
@@ -184,7 +250,7 @@ int CSV_Utility::OpenFile()
 #else
 		printf_s("%s - Log path is not a valid path.\n", mUser.c_str());
 #endif
-		return -1;
+		return false;
 	}
 	std::string directoryPath = mFilename.substr(0, i);
 
@@ -208,7 +274,7 @@ int CSV_Utility::OpenFile()
 #else
 			printf_s("%s - Error %s\n", mUser.c_str(), buffer);
 #endif
-			return -1;
+			return false;
 		}
 	}
 
@@ -224,7 +290,7 @@ int CSV_Utility::OpenFile()
 	}
 
 	// Create the file and verify its open.
-	mFile.open(mFilename);
+	mFile.open(mFilename, std::ios::out);
 	if (!mFile.is_open())
 	{
 #ifdef CPP_LOGGER
@@ -232,7 +298,7 @@ int CSV_Utility::OpenFile()
 #else
 		printf_s("%s - Failed to open the output file.\n", mUser.c_str());
 #endif
-		return -1;
+		return false;
 	}
 
 	// Success
@@ -242,7 +308,7 @@ int CSV_Utility::OpenFile()
 	printf_s("%s - File open successful: %s\n", mUser.c_str(), mFilename.c_str());
 #endif
 
-	return 0;
+	return true;
 }
 
 bool CSV_Utility::IsFileOpen()
@@ -250,14 +316,13 @@ bool CSV_Utility::IsFileOpen()
 	return mFile.is_open();
 }
 
-int CSV_Utility::CloseFile()
+bool CSV_Utility::CloseFile()
 {
-	// TODO - check if open before attempting to close. 
 	if (mFile.is_open())
 	{
 		mFile.close();
-		return 0;
+		return true;
 	}
 
-	return -1;
+	return false;
 }

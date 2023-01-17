@@ -8,5 +8,11 @@ int main()
 {
     std::vector<int> temp{ 0,1,2,3,4,5,6 };
     CSV_Utility csv;
-    csv.WriteCSV((char*)"test/out.csv", temp);
+    csv.SetFileName("test/temp.csv");
+    csv.OpenFile();
+
+    std::vector<std::string> cols{ "one", "two", "three" };
+    csv.WriteColumnHeaders(cols);
+    csv.ClearFile();
+    csv.CloseFile();
 }
