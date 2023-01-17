@@ -208,6 +208,7 @@ int CSV_Utility::OpenFile()
 #else
 			printf_s("%s - Error %s\n", mUser.c_str(), buffer);
 #endif
+			return -1;
 		}
 	}
 
@@ -241,12 +242,12 @@ int CSV_Utility::OpenFile()
 	printf_s("%s - File open successful: %s\n", mUser.c_str(), mFilename.c_str());
 #endif
 
-	return 1;
+	return 0;
 }
 
 bool CSV_Utility::IsFileOpen()
 {
-	return mHandle == NULL;
+	return mFile.is_open();
 }
 
 int CSV_Utility::CloseFile()

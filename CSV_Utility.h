@@ -102,12 +102,16 @@ public:
 
 	size_t GetFileSize();
 
-	bool IsFileOpen();
-
+	//! @brief Opens a file stream
+	//! @return int: -1 on error, 0 if successful
 	int OpenFile();
 
+	//! @brief Check if a file stream is open
+	//! @return bool: true if open, false if closed. 
+	bool IsFileOpen();
+
 	//! @brief Closes a file if its open.
-	//! @return -1 if no file open, 0 if successful
+	//! @return int: -1 if no file open, 0 if successful
 	int CloseFile();
 
 protected:
