@@ -4,6 +4,23 @@
 #include <iostream>
 #include "CSV_Utility.h"
 
+template<typename T>
+int Write(const std::vector<T>& values)
+{
+    int count = 0;
+    for (typename std::vector<T>::const_iterator it = values.begin(); it != values.end(); ++it)
+    {
+        std::cout << *it;
+        if (it + 1 != values.end())
+        {
+            std::cout << ',';
+        }
+        count++;
+    }
+    std::cout << "\n";
+    return count;
+}
+
 int main()
 {
     CSV_Utility csv;
@@ -13,12 +30,14 @@ int main()
     csv.ChangeCSVUtilityWritingType(UTILITY_WRITE_TYPE::APPEND, true);
     csv.OpenFile();
 
-    //std::vector<std::string> cols{ "one", "two", "three" };
-    //std::vector<int> vals{ 1,2,3 };
-    //csv.WriteRow(vals);
-    //csv.WriteRow(vals);
-    //csv.WriteRow(vals);
+    std::vector<std::string> cols{ "one", "two", "three" };
+    std::vector<int> vi{ 1,2,3 };
+    std::vector<double> vf{ 01.23, 23.45, 45.67};
+    std::vector<char> vc{ 'a','b','c' };
     //csv.WriteColumnHeaders(cols);
+    csv.WriteRow(vi);
+    csv.WriteRow(vf);
+    csv.WriteRow(vc);
     //std::cout << "\n" << csv.GetFileSize();
 
     //int c = csv.GetNumberOfColumns();
@@ -29,9 +48,16 @@ int main()
     csv.ReadRow(s, 0);
     printf("ReadRow: %s\n", s.c_str());
 
-    csv.PrintFile();
+    csv.PrintCSVData();
+
+    std::vector<std::string> names;
+    csv.GetColumnNames(names);
+    
+    for (std::vector<std::string>::const_iterator it = names.begin(); it != names.end(); ++it)
+    {
+        printf_s("%s %c", *it, ',');
+    }
 
     csv.CloseFile();
-    
     return 0;
 }

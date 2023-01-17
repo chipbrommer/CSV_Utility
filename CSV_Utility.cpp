@@ -122,149 +122,87 @@ bool CSV_Utility::ChangeCSVUtilityWritingType(UTILITY_WRITE_TYPE type, bool clos
 
 int CSV_Utility::WriteColumnHeaders(const std::vector<std::string>& names)
 {
-	if (!mFile.is_open())
+	if (!IsFileOpen() || (mMode != UTILITY_MODE::WRITE && mMode != UTILITY_MODE::READWRITE))
 	{
 		return -1;
 	}
-
-	// TODO - Get current position
 
 	mFile.seekg(0, std::ios::beg);
 
 	/*
-	if not append mode, we need to change the mode.
+	if not trunc mode, we need to change the mode.
 	*/
 
 	int count = WriteRow(names);
 
-	// TODO return to position
-
 	return count;
 }
 
-int CSV_Utility::WriteRow(const std::vector<int>& values)
-{
-	if (!IsFileOpen())
-	{
-		return -1;
-	}
-
-	int count = 0;
-
-	for (std::vector<int>::const_iterator it = values.begin(); it != values.end(); ++it)
-	{
-		mFile << *it;
-
-		if (it + 1 != values.end())
-		{
-			mFile << mDelimiter;
-		}
-
-		count++;
-	}
-
-	mFile << "\n";
-
-	return count;
-}
-
-int CSV_Utility::WriteRow(const std::vector<std::string>& values)
-{
-	if (!IsFileOpen())
-	{
-		return -1;
-	}
-
-	int count = 0;
-
-	for (std::vector<std::string>::const_iterator it = values.begin(); it != values.end(); ++it)
-	{
-		mFile << *it;
-
-		if (it + 1 != values.end())
-		{
-			mFile << mDelimiter;
-		}
-
-		count++;
-	}
-
-	mFile << "\n";
-
-	return count;
-}
-
-bool CSV_Utility::ReadRow(std::string& values, int rowNum = 0)
+bool CSV_Utility::ReadRow(std::string& values, int rowNum = 1)
 {
 	if (!IsFileOpen())
 	{
 		return false;
 	}
 
-	// TODO - Capture current file location.
-
-	// Go to top of file. 
-	//mFile.seekg(0, std::ios::beg);
-
-	// TODO - for loop to get to the desired row number. 
-
-	if (mFile.good())
+	if (mFile.good() || mFile.eof())
 	{
-		std::getline(mFile, values);
-	}
-	else
-	{
-		CatchFailReason();
-	}
-
-	// TODO - return to captured file location.
-
-	return true;
-}
-
-void CSV_Utility::PrintFile()
-{
-	if (!mFile.is_open())
-	{
-		return;
-	}
-
-	mFile.seekg(0, std::ios::beg);
-
-	if (mFile.good())
-	{
+		// Save current position and then go to top of file. 
+		auto curr_pos = mFile.tellg();
 		mFile.seekg(0, std::ios::beg);
-		std::string line;
 
-		while (std::getline(mFile, line))
+		auto pos2 = mFile.tellg();
+
+		// Find the row and get the contents
+		for (int i = 1; i < rowNum+1; i++)
 		{
-			printf("%s\n", line.c_str());
+			if (i == rowNum)
+			{
+				std::getline(mFile, values);
+				std::cout << values << "<- DONE\n";
+				break;
+			}
+
+			std::string temp;
+			std::getline(mFile, temp);
 		}
+
+		// Return to position
+		mFile.seekp(curr_pos);
+
+		return true;
 	}
 	else
 	{
 		CatchFailReason();
 	}
 
-	printf("\n");
+	return false;
 }
 
-int CSV_Utility::GetColumnNames(const std::vector<std::string>* names)
+int CSV_Utility::GetColumnNames(std::vector<std::string>& names)
 {
 	if (!IsFileOpen())
 	{
 		return -1;
 	}
 
-	// store - Get current location
+	if (mFile.good() || mFile.eof())
+	{
+		std::string row;
+		int count = 0;
+		bool r = ReadRow(row, 1);
+		if (r)
+		{
+			count = ParseCSVBuffer((char*)row.c_str(), names);
+		}
 
-	// Seek to top of file
-
-	// Get first line
-
-	// Parse at delimiter
-
-	// Seek back to pre-location.
+		return count;
+	}
+	else
+	{
+		CatchFailReason();
+	}
 
 	return 0;
 }
@@ -305,7 +243,6 @@ int CSV_Utility::GetNumberOfRows()
 	return count;
 }
 
-//template<class T>
 int CSV_Utility::WriteFullCSV(const std::string filename, std::vector<int> const& values)
 {
 	// Get the Logger instance if its included
@@ -395,16 +332,41 @@ int CSV_Utility::WriteFullCSV(const std::string filename, std::vector<int> const
 	return 1;
 }
 
-//template<typename T>
 int CSV_Utility::ParseCSVBuffer(char* buffer, const std::vector<std::string>& values)
 {
 	return 0;
 }
 
-template <typename T>
-int CSV_Utility::ParseCSVFile(FILE* handle, std::vector<T>& values)
+int CSV_Utility::ParseCSVFile(FILE* handle, std::vector<int>& values)
 {
 	return 0;
+}
+
+void CSV_Utility::PrintCSVData()
+{
+	if (!mFile.is_open())
+	{
+		return;
+	}
+
+	mFile.seekg(0, std::ios::beg);
+
+	if (mFile.good())
+	{
+		mFile.seekg(0, std::ios::beg);
+		std::string line;
+
+		while (std::getline(mFile, line))
+		{
+			printf("%s\n", line.c_str());
+		}
+	}
+	else
+	{
+		CatchFailReason();
+	}
+
+	printf("\n");
 }
 
 bool CSV_Utility::IsEndOfFile()
@@ -480,7 +442,6 @@ bool CSV_Utility::OpenFile()
 		{
 			char buffer[256];
 			strerror_s(buffer, sizeof(buffer), errno); // get string message from errno, XSI-compliant version
-
 #ifdef CPP_LOGGER
 			log->AddEntry(LOG_LEVEL::LOG_ERROR, mUser, "Error %s", buffer);
 #else
@@ -502,7 +463,7 @@ bool CSV_Utility::OpenFile()
 	}
 
 	// Create the file and verify its open.
-	mFile.open(mFilename, std::ios::in);
+	mFile.open(mFilename, std::ios::out | std::ios::in | std::ios::trunc);
 	if (!mFile.is_open())
 	{
 #ifdef CPP_LOGGER
@@ -513,19 +474,21 @@ bool CSV_Utility::OpenFile()
 		return false;
 	}
 
-	if (mFile.good()) { printf("good"); }
-	if (mFile.eof()) { printf("eof"); }
-	if (mFile.bad()) { printf("bad"); }
-	if (mFile.fail()) { printf("fail"); }
-
-	// Success
+	if (mFile.good())
+	{
+		// Success
 #ifdef CPP_LOGGER
-	log->AddEntry(LOG_LEVEL::LOG_INFO, mUser, "File open successful: %s", mFilename.c_str());
+		log->AddEntry(LOG_LEVEL::LOG_INFO, mUser, "File open successful: %s", mFilename.c_str());
 #else
-	printf_s("%s - File open successful: %s\n", mUser.c_str(), mFilename.c_str());
+		printf_s("%s - File open successful: %s\n", mUser.c_str(), mFilename.c_str());
 #endif
-
-	return true;
+		return true;
+	}
+	else
+	{
+		CatchFailReason();
+	}
+	return false;
 }
 
 bool CSV_Utility::IsFileOpen()

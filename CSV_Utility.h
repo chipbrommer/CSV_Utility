@@ -104,15 +104,38 @@ public:
 	//! @return 
 	int WriteColumnHeaders(const std::vector<std::string>& names);
 
-	int WriteRow(const std::vector<int>& values);
-
-	int WriteRow(const std::vector<std::string>& values);
+	template<typename T>
+	int WriteRow(const std::vector<T>& values)
+	{
+		if (!IsFileOpen())
+		{
+			return -1;
+		}
+		if (mFile.good())
+		{
+			int count = 0;
+			for (typename std::vector<T>::const_iterator it = values.begin(); it != values.end(); ++it)
+			{
+				mFile << *it;
+				if (it + 1 != values.end())
+				{
+					mFile << mDelimiter;
+				}
+				count++;
+			}
+			mFile << "\n";
+			return count;
+		}
+		else
+		{
+			CatchFailReason();
+		}
+		return -1;
+	}
 
 	bool ReadRow(std::string& values, int rowNum);
 
-	void PrintFile();
-
-	int GetColumnNames(const std::vector<std::string>* names);
+	int GetColumnNames(std::vector<std::string>& names);
 
 	int GetNumberOfColumns();
 
@@ -137,10 +160,9 @@ public:
 	//! @param handle - A pointer to a file handle. 
 	//! @param values - A vector to store the parsed values into.
 	//! @return -1 on error, else the number of values successfully parsed. 
-	template <typename T>
-	int ParseCSVFile(FILE* handle, std::vector<T>& values);
+	int ParseCSVFile(FILE* handle, std::vector<int>& values);
 
-	//int PrintCSVData(int rows, int columns, std::vector<int>& values);
+	void PrintCSVData();
 
 	//! @brief Check if the file is at the end.
 	//! @return bool: true if the end, false if not.
