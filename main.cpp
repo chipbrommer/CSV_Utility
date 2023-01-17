@@ -13,6 +13,7 @@ int main()
 
     std::vector<std::string> cols{ "one", "two", "three" };
     csv.WriteColumnHeaders(cols);
+    std::cout << "\n\n" << csv.GetFileSize();
     csv.ClearFile();
     csv.CloseFile();
 }

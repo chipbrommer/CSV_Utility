@@ -230,8 +230,16 @@ size_t CSV_Utility::GetFileSize()
 		return -1;
 	}
 
-	// TODO - get file data and return
-	return 0;
+	// TODO get current position.
+
+	long fsize = 0;
+	mFile.seekg(0, std::ios::end);
+	fsize = mFile.tellg();
+	mFile.seekg(0, std::ios::beg);
+
+	// TODO put at original position
+
+	return fsize;
 }
 
 bool CSV_Utility::OpenFile()
