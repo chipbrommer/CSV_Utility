@@ -54,9 +54,15 @@ struct CSVFileInfo
 
 enum class UTILITY_MODE : const int
 {
-	WRITE = 0,
-	READ = 1,
-	CLEAR = 2
+	WRITE		= 1,
+	READ		= 2,
+	READWRITE	= 3,
+};
+
+enum class UTILITY_WRITE_TYPE : const int
+{
+	APPEND,
+	TRUNC,
 };
 
 //! @brief A CSV utility class to parse and write CSV files. 
@@ -66,23 +72,51 @@ public:
 	//! @brief Default Constructor
 	CSV_Utility();
 
-	CSV_Utility(const std::string filename);
+	CSV_Utility(const std::string filename, const UTILITY_MODE mode, const UTILITY_WRITE_TYPE type);
 
 	//! @brief Default Deconstructor
 	~CSV_Utility();
 
 	//! @brief Set the filename of the CSV file to be opened/created
+	//! @param filename - filepath + name to be opened. 
+	//! @return -1 if file is already open, 0 if failed, 1 if successful. 
 	int SetFileName(const std::string filename);
 
 	//! @brief Changes the delimiter used when parsing. 
 	//! @param delimiter - Character to use as a delimiter.
-	void ChangeDelimiter(char delimiter);
+	//! @return bool: true if successful, false is failed
+	bool ChangeDelimiter(char delimiter);
 
-	bool ChangeCSVUtilityMode(UTILITY_MODE mode);
+	//! @brief Change the mode of the CSV utility
+	//! @param mode - UTILITY_MODE to open the file as
+	//! @param close - an override to force close the file if its open
+	//! @return bool: true if successful, false is failed
+	bool ChangeCSVUtilityMode(UTILITY_MODE mode, bool close);
 
+	//! @brief Change the mode of the CSV utility
+	//! @param mode - UTILITY_WRITE_TYPE to open the file as
+	//! @param close - an override to force close the file if its open
+	//! @return bool: true if successful, false is failed
+	bool ChangeCSVUtilityWritingType(UTILITY_WRITE_TYPE type, bool close);
+
+	//! @brief Write out column headers.
+	//! @param names - vector of strings to write as columns headers
+	//! @return 
 	int WriteColumnHeaders(const std::vector<std::string>& names);
 
-	//int WriteRow(std::vector<int>const& values);
+	int WriteRow(const std::vector<int>& values);
+
+	int WriteRow(const std::vector<std::string>& values);
+
+	bool ReadRow(std::string& values, int rowNum);
+
+	int GetColumnNames(const std::vector<std::string>* names);
+
+	int GetNumberOfColumns();
+
+	//! @brief Get the number of rows in the open file.
+	//! @return int: -1 if no file opened, else the number of rows found (including column names)
+	int GetNumberOfRows();
 
 	//! @brief Write a full group of data to a CSV file
 	//! @param filename - char array containing the filename to be opened and written to
@@ -90,14 +124,6 @@ public:
 	//! @return -1 on error, else the number of values successfully written to file. 
 	//template<class T>
 	int WriteFullCSV(const std::string filename, const std::vector<int>& values);
-
-	//int GetColumnNames(const std::vector<std::string>& names);
-
-	//int GetNumberOfRows();
-
-	//int GetNumberOfRows(const std::string filename);
-
-	//int GetNumberOfRows(const FILE* handle);
 
 	//! @brief Parse a CSV Buffer.
 	//! @param buffer - A char buffer to be parsed.
@@ -122,8 +148,8 @@ public:
 	//! @return bool: true if successful, false if failed.
 	bool ClearFile();
 
-	//! @brief Get the file size of the file. 
-	//! @return size_t: The size of the file.
+	//! @brief Get the file size in bytes of the file. 
+	//! @return size_t: The size of the file in bytes.
 	size_t GetFileSize();
 
 	//! @brief Opens a file stream
@@ -140,11 +166,12 @@ public:
 
 protected:
 private:
-	std::string		mUser;					//!< Name for the class when using CPP_Logger
+	std::string			mUser;					//!< Name for the class when using CPP_Logger
 	//CSVFileInfo		dCSVFileInfo;			//!< Current CSV File
-	std::fstream	mFile;					//!< File stream for in and out
-	std::string		mExtension;				//!< File Extension
-	UTILITY_MODE	mMode;					//!< Current mode of the utility
-	std::string		mFilename;				//!< Current filename
-	char			mDelimiter;				//!< Delimiter to use in file output
+	std::fstream		mFile;					//!< File stream for in and out
+	std::string			mExtension;				//!< File Extension
+	UTILITY_MODE		mMode;					//!< Current mode of the utility
+	UTILITY_WRITE_TYPE	mType;					//!< Current writing type of the utility
+	std::string			mFilename;				//!< Current filename
+	char				mDelimiter;				//!< Delimiter to use in file output
 };

@@ -25,12 +25,14 @@ CSV_Utility::CSV_Utility()
 	mExtension = ".csv";
 }
 
-CSV_Utility::CSV_Utility(std::string filename)
+CSV_Utility::CSV_Utility(const std::string filename, const UTILITY_MODE mode = UTILITY_MODE::READWRITE, const UTILITY_WRITE_TYPE type = UTILITY_WRITE_TYPE::TRUNC)
 {
 	mFilename = filename;
 	mUser = "CSVUtility";
 	mDelimiter = ',';
 	mExtension = ".csv";
+	mMode = mode;
+	mType = type;
 }
 
 CSV_Utility::~CSV_Utility()
@@ -40,31 +42,77 @@ CSV_Utility::~CSV_Utility()
 
 int CSV_Utility::SetFileName(const std::string filename)
 {
-	if (!IsFileOpen())
+	if (IsFileOpen())
 	{
-		mFilename = filename;
+		return -1;
+	}
+
+	mFilename = filename;
+
+	if (mFilename == filename)
+	{
 		return 1;
 	}
 	
 	return 0;
 }
 
-void CSV_Utility::ChangeDelimiter(char delimiter)
+bool CSV_Utility::ChangeDelimiter(char delimiter)
 {
 	printf_s("Received new delimiter: %c\n", delimiter);
 	mDelimiter = delimiter;
+
+	mDelimiter = delimiter;
+
+	if (mDelimiter == delimiter)
+	{
+		return true;
+	}
+
+	return false;
 }
 
-bool CSV_Utility::ChangeCSVUtilityMode(UTILITY_MODE mode)
+bool CSV_Utility::ChangeCSVUtilityMode(UTILITY_MODE mode, bool close = false)
 {
 	if (mFile.is_open())
 	{
-		CloseFile();
+		if (close)
+		{
+			CloseFile();
+		}
+		else
+		{
+			return false;
+		}
 	}
 
 	mMode = mode;
 
-	if(OpenFile() && (mMode == mode))
+	if(mMode == mode)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool CSV_Utility::ChangeCSVUtilityWritingType(UTILITY_WRITE_TYPE type, bool close = false)
+{
+	if (mFile.is_open())
+	{
+		if (close)
+		{
+			CloseFile();
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	mType = type;
+
+	if (mType == type)
 	{
 		return true;
 	}
@@ -79,13 +127,35 @@ int CSV_Utility::WriteColumnHeaders(const std::vector<std::string>& names)
 		return -1;
 	}
 
+	// TODO - Get current position
+
+	mFile.seekg(0, std::ios::beg);
+
+	/*
+	if not append mode, we need to change the mode.
+	*/
+
+	int count = WriteRow(names);
+
+	// TODO return to position
+
+	return count;
+}
+
+int CSV_Utility::WriteRow(const std::vector<int>& values)
+{
+	if (!IsFileOpen())
+	{
+		return -1;
+	}
+
 	int count = 0;
 
-	for (std::vector<std::string>::const_iterator it = names.begin(); it != names.end(); ++it)
+	for (std::vector<int>::const_iterator it = values.begin(); it != values.end(); ++it)
 	{
 		mFile << *it;
 
-		if (it + 1 != names.end())
+		if (it + 1 != values.end())
 		{
 			mFile << mDelimiter;
 		}
@@ -93,12 +163,112 @@ int CSV_Utility::WriteColumnHeaders(const std::vector<std::string>& names)
 		count++;
 	}
 
+	mFile << "\n";
+
 	return count;
 }
 
-int WriteRow(std::vector<int>const& values)
+int CSV_Utility::WriteRow(const std::vector<std::string>& values)
 {
+	if (!IsFileOpen())
+	{
+		return -1;
+	}
+
+	int count = 0;
+
+	for (std::vector<std::string>::const_iterator it = values.begin(); it != values.end(); ++it)
+	{
+		mFile << *it;
+
+		if (it + 1 != values.end())
+		{
+			mFile << mDelimiter;
+		}
+
+		count++;
+	}
+
+	mFile << "\n";
+
+	return count;
+}
+
+bool CSV_Utility::ReadRow(std::string& values, int rowNum = 0)
+{
+	if (!IsFileOpen())
+	{
+		return false;
+	}
+
+	// TODO - Capture current file location.
+
+	// Go to top of file. 
+	mFile.seekg(0, std::ios::beg);
+
+	// TODO - for loop to get to the desired row number. 
+
+	getline(mFile, values);
+
+	// TODO - return to captured file location.
+
+	return true;
+}
+
+int CSV_Utility::GetColumnNames(const std::vector<std::string>* names)
+{
+	if (!IsFileOpen())
+	{
+		return -1;
+	}
+
+	// store - Get current location
+
+	// Seek to top of file
+
+	// Get first line
+
+	// Parse at delimiter
+
+	// Seek back to pre-location.
+
 	return 0;
+}
+
+int CSV_Utility::GetNumberOfColumns()
+{
+	if (!IsFileOpen())
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
+int CSV_Utility::GetNumberOfRows()
+{
+	if (!IsFileOpen() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READWRITE))
+	{
+		return -1;
+	}
+
+	int count = 0;
+	std::string line = "";
+
+	// TODO Get current location
+
+	// Move to top of file
+	mFile.seekg(0, std::ios::beg);
+
+	// While loop to count numbers of rows. 
+	while (getline(mFile, line))
+	{
+		count++;
+	}
+
+	// TODO return to location
+
+	return count;
 }
 
 //template<class T>
@@ -298,7 +468,7 @@ bool CSV_Utility::OpenFile()
 	}
 
 	// Create the file and verify its open.
-	mFile.open(mFilename, std::ios::out);
+	mFile.open(mFilename, std::ios::in | std::ios::out | std::ios::app);
 	if (!mFile.is_open())
 	{
 #ifdef CPP_LOGGER
