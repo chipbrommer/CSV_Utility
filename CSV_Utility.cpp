@@ -204,15 +204,49 @@ bool CSV_Utility::ReadRow(std::string& values, int rowNum = 0)
 	// TODO - Capture current file location.
 
 	// Go to top of file. 
-	mFile.seekg(0, std::ios::beg);
+	//mFile.seekg(0, std::ios::beg);
 
 	// TODO - for loop to get to the desired row number. 
 
-	getline(mFile, values);
+	if (mFile.good())
+	{
+		std::getline(mFile, values);
+	}
+	else
+	{
+		CatchFailReason();
+	}
 
 	// TODO - return to captured file location.
 
 	return true;
+}
+
+void CSV_Utility::PrintFile()
+{
+	if (!mFile.is_open())
+	{
+		return;
+	}
+
+	mFile.seekg(0, std::ios::beg);
+
+	if (mFile.good())
+	{
+		mFile.seekg(0, std::ios::beg);
+		std::string line;
+
+		while (std::getline(mFile, line))
+		{
+			printf("%s\n", line.c_str());
+		}
+	}
+	else
+	{
+		CatchFailReason();
+	}
+
+	printf("\n");
 }
 
 int CSV_Utility::GetColumnNames(const std::vector<std::string>* names)
@@ -468,7 +502,7 @@ bool CSV_Utility::OpenFile()
 	}
 
 	// Create the file and verify its open.
-	mFile.open(mFilename, std::ios::in | std::ios::out | std::ios::app);
+	mFile.open(mFilename, std::ios::in);
 	if (!mFile.is_open())
 	{
 #ifdef CPP_LOGGER
@@ -478,6 +512,11 @@ bool CSV_Utility::OpenFile()
 #endif
 		return false;
 	}
+
+	if (mFile.good()) { printf("good"); }
+	if (mFile.eof()) { printf("eof"); }
+	if (mFile.bad()) { printf("bad"); }
+	if (mFile.fail()) { printf("fail"); }
 
 	// Success
 #ifdef CPP_LOGGER
@@ -503,4 +542,12 @@ bool CSV_Utility::CloseFile()
 	}
 
 	return false;
+}
+
+void CSV_Utility::CatchFailReason()
+{
+	if (mFile.eof()) { printf("Eof bit set.\n"); }
+	else if (mFile.bad()) { printf("Bad bit set.\n"); }
+	else if (mFile.fail()) { printf("Fail bit set.\n"); }
+	else { printf("Unknown failure.\n"); }
 }

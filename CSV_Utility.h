@@ -110,6 +110,8 @@ public:
 
 	bool ReadRow(std::string& values, int rowNum);
 
+	void PrintFile();
+
 	int GetColumnNames(const std::vector<std::string>* names);
 
 	int GetNumberOfColumns();
@@ -166,6 +168,8 @@ public:
 
 protected:
 private:
+	void CatchFailReason();
+
 	std::string			mUser;					//!< Name for the class when using CPP_Logger
 	//CSVFileInfo		dCSVFileInfo;			//!< Current CSV File
 	std::fstream		mFile;					//!< File stream for in and out
