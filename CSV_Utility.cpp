@@ -25,8 +25,28 @@ CSV_Utility::CSV_Utility()
 	mExtension = ".csv";
 }
 
+CSV_Utility::CSV_Utility(std::string filename)
+{
+	mFilename = filename;
+	mUser = "CSVUtility";
+	mDelimeter = ',';
+	mExtension = ".csv";
+}
+
 CSV_Utility::~CSV_Utility()
 {
+	CloseFile();
+}
+
+int CSV_Utility::SetFileName(const std::string filename)
+{
+	if (!CheckFileOpen())
+	{
+		mFilename = filename;
+		return 1;
+	}
+	
+	return 0;
 }
 
 void CSV_Utility::ChangeDelimiter(char delimiter)
@@ -137,6 +157,17 @@ int CSV_Utility::ParseCSVFile(FILE* handle, std::vector<T>& values)
 
 }
 
+size_t CSV_Utility::GetFileSize()
+{
+	// Check if file is not open. 
+	if (!IsFileOpen())
+	{
+		return -1;
+	}
+
+
+}
+
 int CSV_Utility::OpenFile()
 {
 	// Get the Logger instance if its included
@@ -191,9 +222,9 @@ int CSV_Utility::OpenFile()
 #endif
 	}
 
-	// Open file and catch a bad handle
-	int open = fopen_s(&mHandle, mFilename.c_str(), "w");
-	if (open != 0)
+	// Create the file and verify its open.
+	mFile.open(mFilename);
+	if (!mFile.is_open())
 	{
 #ifdef CPP_LOGGER
 		log->AddEntry(LOG_LEVEL::LOG_ERROR, mUser, "Failed to open the output file.");
@@ -213,8 +244,19 @@ int CSV_Utility::OpenFile()
 	return 1;
 }
 
+bool CSV_Utility::IsFileOpen()
+{
+	return mHandle == NULL;
+}
+
 int CSV_Utility::CloseFile()
 {
 	// TODO - check if open before attempting to close. 
-	fclose(mHandle);
+	if (mFile.is_open())
+	{
+		mFile.close();
+		return 0;
+	}
+
+	return -1;
 }

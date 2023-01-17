@@ -24,6 +24,7 @@
 #include	<unistd.h>
 #endif
 //
+#include <fstream>						// File Stream
 #include <vector>                       // Vectors
 #include <iterator>						// Iterating vector
 #include <sstream>                      // Stream for parsing strings
@@ -52,6 +53,9 @@ public:
 
 	//! @brief Default Deconstructor
 	~CSV_Utility();
+
+	//! @brief Set the filename of the CSV file to be opened/created
+	int SetFileName(const std::string filename);
 
 	//! @brief Changes the delimiter used when parsing. 
 	//! @param delimiter - Character to use as a delimiter.
@@ -92,22 +96,25 @@ public:
 
 	int PrintCSVData(int rows, int columns, std::vector<int>& values);
 
-	bool IsFileOpen();
-
 	bool EndOfFile();
 
 	int ClearFile();
 
 	size_t GetFileSize();
 
-protected:
-private:
+	bool IsFileOpen();
+
 	int OpenFile();
+
+	//! @brief Closes a file if its open.
+	//! @return -1 if no file open, 0 if successful
 	int CloseFile();
 
+protected:
+private:
 	std::string		mUser;					//!< Name for the class when using CPP_Logger
 	char			mDelimeter;				//!< char used as a delimiter when parsing
 	std::string		mExtension;				//!< File extension to be used. 
 	std::string		mFilename;
-	FILE*			mHandle;
+	std::ofstream	mFile;
 };
