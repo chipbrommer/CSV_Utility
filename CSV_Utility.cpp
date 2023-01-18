@@ -15,7 +15,7 @@
 //  Include files:
 //          name                        reason included
 //          --------------------        ---------------------------------------
-#include "CSV_Utility.h"					// CSV Parser class header
+#include "CSV_Utility.h"				// CSV Parser class header
 ///////////////////////////////////////////////////////////////////////////////
 
 CSV_Utility::CSV_Utility()
@@ -57,18 +57,19 @@ int CSV_Utility::SetFileName(const std::string filename)
 	// if filenames are equal, success. 
 	if (mFilename == filename)
 	{
+		mFileSet = true;
 		return 1;
 	}
 	// failed. 
 	return 0;
 }
 
-bool CSV_Utility::ChangeDelimiter(char delimiter)
+bool CSV_Utility::ChangeDelimiter(const char delimiter)
 {
 #ifdef CPP_LOGGER
 	log->AddEntry(LOG_LEVEL::LOG_ERROR, mUser, "Received new delimiter: %c", delimiter);
 #else
-	printf_s("%s - Received new delimiter: %c\n", mUser, delimiter);
+	printf_s("%s - Received new delimiter: %c\n", mUser.c_str(), delimiter);
 #endif
 
 	mDelimiter = delimiter;
@@ -81,16 +82,17 @@ bool CSV_Utility::ChangeDelimiter(char delimiter)
 	return false;
 }
 
-bool CSV_Utility::ChangeCSVUtilityMode(UTILITY_MODE mode)
+bool CSV_Utility::ChangeCSVUtilityMode(const UTILITY_MODE mode)
 {
 	bool open = false;
-	// if the file is open, check the close bool. 
+	// if the file is open, close it. 
 	if (mFile.is_open())
 	{
 		open = true;
 		mFile.close();
 	}
 
+	// Set the new mode
 	mMode = mode;
 
 	// If modes equal, attempt to re-open file. 
@@ -110,16 +112,17 @@ bool CSV_Utility::ChangeCSVUtilityMode(UTILITY_MODE mode)
 	return false;
 }
 
-bool CSV_Utility::ChangeCSVUtilityWritingType(UTILITY_WRITE_TYPE type)
+bool CSV_Utility::ChangeCSVUtilityWritingType(const UTILITY_WRITE_TYPE type)
 {
 	bool open = false;
-	// if the file is open, check the close bool. 
+	// if the file is open, close it
 	if (mFile.is_open())
 	{
 		open = true;
 		mFile.close();
 	}
 
+	// Set the new type
 	mType = type;
 
 	// If modes equal, attempt to re-open file. 
@@ -157,7 +160,7 @@ int CSV_Utility::WriteColumnHeaders(const std::vector<std::string>& names)
 	return count;
 }
 
-bool CSV_Utility::ReadRow(std::string& values, int rowNum = 1)
+bool CSV_Utility::ReadRow(std::string& values, const int row = 0)
 {
 	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READWRITE))
 	{
@@ -166,17 +169,23 @@ bool CSV_Utility::ReadRow(std::string& values, int rowNum = 1)
 
 	if (mFile.good() || mFile.eof())
 	{
+		// if reading current position, get line and return. 
+		if (row == 0)
+		{
+			std::getline(mFile, values);
+			return true;
+		}
+
 		// Save current position and then go to top of file. 
 		auto curr_pos = mFile.tellg();
 		mFile.seekg(0, std::ios::beg);
 
 		// Find the row and get the contents
-		for (int i = 1; i < rowNum+1; i++)
+		for (int i = 1; i < row+1; i++)
 		{
-			if (i == rowNum)
+			if (i == row)
 			{
 				std::getline(mFile, values);
-				std::cout << values << "<- DONE\n";
 				break;
 			}
 
@@ -197,11 +206,16 @@ bool CSV_Utility::ReadRow(std::string& values, int rowNum = 1)
 	return false;
 }
 
+bool ReadColumn(std::vector<std::string>values, const int column)
+{
+	return false;
+}
+
 int CSV_Utility::GetColumnNames(std::vector<std::string>& names)
 {
-	if (!IsFileOpen())
+	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READWRITE))
 	{
-		return -1;
+		return false;
 	}
 
 	if (mFile.good() || mFile.eof())
@@ -226,11 +240,34 @@ int CSV_Utility::GetColumnNames(std::vector<std::string>& names)
 
 int CSV_Utility::GetNumberOfColumns()
 {
-	if (!IsFileOpen())
+	// Make sure file is open and we are in a read mode
+	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READWRITE))
 	{
 		return -1;
 	}
 
+	// Veify file handle is good. 
+	if (mFile.good() || mFile.eof())
+	{
+		// Get the number of columns in row 1.
+		std::string row;
+		int count = 0;
+		bool r = ReadRow(row, 1);
+		if (r)
+		{
+			std::vector < std::string> values;
+			count = ParseCSVBuffer((char*)row.c_str(), values);
+		}
+
+		// return number of columns
+		return count;
+	}
+	else
+	{
+		CatchFailReason();
+	}
+
+	// Default return
 	return 0;
 }
 
@@ -354,8 +391,31 @@ int CSV_Utility::WriteFullCSV(const std::string filename, std::vector<int> const
 	return 1;
 }
 
-int CSV_Utility::ParseCSVBuffer(char* buffer, const std::vector<std::string>& values)
+int CSV_Utility::ParseCSVBuffer(std::string buffer, std::vector<std::string>& values)
 {
+	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READWRITE))
+	{
+		return false;
+	}
+
+	if (mFile.good() || mFile.eof())
+	{
+		// Returns first value
+		char* token = strtok((char*)buffer.c_str(), (char*)mDelimiter);
+
+		while (token != NULL)
+		{
+			values.push_back(token);
+			token = strtok(NULL, (char*)mDelimiter);
+		}
+
+		return values.size();
+	}
+	else
+	{
+		CatchFailReason();
+	}
+
 	return 0;
 }
 
@@ -433,7 +493,7 @@ size_t CSV_Utility::GetFileSize()
 		// Seek to end and get the size
 		long fsize = 0;
 		mFile.seekg(0, std::ios::end);
-		fsize = mFile.tellg();
+		fsize = (long)mFile.tellg();
 
 		// Return to position
 		mFile.seekp(curr_pos);
@@ -556,6 +616,7 @@ bool CSV_Utility::CloseFile()
 		}
 		return true;
 	}
+
 	return false;
 }
 

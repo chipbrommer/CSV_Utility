@@ -72,6 +72,10 @@ public:
 	//! @brief Default Constructor
 	CSV_Utility();
 
+	//! @brief Overloaded Constructor
+	//! @param filename - string containing the desired filename to read or write to.
+	//! @param mode - the mode of the CSV utility (read, write, readwrite)
+	//! @param type - the type of the CSV utility (trunc, append)
 	CSV_Utility(const std::string filename, const UTILITY_MODE mode, const UTILITY_WRITE_TYPE type);
 
 	//! @brief Default Deconstructor
@@ -79,29 +83,33 @@ public:
 
 	//! @brief Set the filename of the CSV file to be opened/created
 	//! @param filename - filepath + name to be opened. 
-	//! @return -1 if file is already open, 0 if failed, 1 if successful. 
+	//! @return int: -1 if file is already open, 0 if failed, 1 if successful. 
 	int SetFileName(const std::string filename);
 
 	//! @brief Changes the delimiter used when parsing. 
 	//! @param delimiter - Character to use as a delimiter.
 	//! @return bool: true if successful, false is failed
-	bool ChangeDelimiter(char delimiter);
+	bool ChangeDelimiter(const char delimiter);
 
 	//! @brief Change the mode of the CSV utility
 	//! @param mode - UTILITY_MODE to open the file as
 	//! @return bool: true if successful, false is failed
-	bool ChangeCSVUtilityMode(UTILITY_MODE mode);
+	bool ChangeCSVUtilityMode(const UTILITY_MODE mode);
 
 	//! @brief Change the mode of the CSV utility
 	//! @param mode - UTILITY_WRITE_TYPE to open the file as
 	//! @return bool: true if successful, false is failed
-	bool ChangeCSVUtilityWritingType(UTILITY_WRITE_TYPE type);
+	bool ChangeCSVUtilityWritingType(const UTILITY_WRITE_TYPE type);
 
 	//! @brief Write out column headers.
 	//! @param names - vector of strings to write as columns headers
-	//! @return 
+	//! @return int: -1 on error, else the number of columns successfully written. 
 	int WriteColumnHeaders(const std::vector<std::string>& names);
 
+	//! @brief A function to write out a vector of any type to the csv file.
+	//! @note This function is implemented in the header because of the use of template.
+	//! @param A vector of any type <template> to store the values into. 
+	//! @return int: -1 on error, else the number of values read. 
 	template<typename T>
 	int WriteRow(const std::vector<T>& values)
 	{
@@ -131,10 +139,25 @@ public:
 		return -1;
 	}
 
-	bool ReadRow(std::string& values, int rowNum);
+	//! @brief Read a row of data from the file.
+	//! @param values - A string that contains the read line of data. 
+	//! @param row - if zero (0), reads current position, else reads specified row. 
+	//! @return bool: True if successful read, false if fail. 
+	bool ReadRow(std::string& values, const int row);
 
+	//! @brief Read a column of data from the file.
+	//! @param values - A vector of strings that contains the read column of data. 
+	//! @param column - reads specified column. 
+	//! @return bool: True if successful read, false if fail. 
+	bool ReadColumn(std::vector<std::string>values, const int column);
+
+	//! @brief Get the column names of a CSV file. 
+	//! @param names - a vector of strings to store the parsed column names. 
+	//! @return int: -1 on error, else the number of column names. 
 	int GetColumnNames(std::vector<std::string>& names);
 
+	//! @brief Get the number of columns in a CSV file. 
+	//! @return int: -1 on error, else the number of columns in the file
 	int GetNumberOfColumns();
 
 	//! @brief Get the number of rows in the open file.
@@ -144,15 +167,14 @@ public:
 	//! @brief Write a full group of data to a CSV file
 	//! @param filename - char array containing the filename to be opened and written to
 	//! @param values - a vector of any type to write 
-	//! @return -1 on error, else the number of values successfully written to file. 
-	//template<class T>
+	//! @return int: -1 on error, else the number of values successfully written to file. 
 	int WriteFullCSV(const std::string filename, const std::vector<int>& values);
 
 	//! @brief Parse a CSV Buffer.
 	//! @param buffer - A char buffer to be parsed.
 	//! @param values - A vector to store the parsed values into.
 	//! @return -1 on error, else the number of values successfully parsed. 
-	int ParseCSVBuffer(char* buffer, const std::vector<std::string>& values);
+	int ParseCSVBuffer(std::string buffer, std::vector<std::string>& values);
 
 	//! @brief Read in a CSV file and parse it. 
 	//! @param handle - A pointer to a file handle. 
@@ -160,6 +182,7 @@ public:
 	//! @return -1 on error, else the number of values successfully parsed. 
 	int ParseCSVFile(FILE* handle, std::vector<int>& values);
 
+	//! @brief Prints a CSV files data contents to console. 
 	void PrintCSVData();
 
 	//! @brief Check if the file is at the end.
