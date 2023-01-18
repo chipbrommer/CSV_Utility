@@ -89,15 +89,13 @@ public:
 
 	//! @brief Change the mode of the CSV utility
 	//! @param mode - UTILITY_MODE to open the file as
-	//! @param close - an override to force close the file if its open
 	//! @return bool: true if successful, false is failed
-	bool ChangeCSVUtilityMode(UTILITY_MODE mode, bool close);
+	bool ChangeCSVUtilityMode(UTILITY_MODE mode);
 
 	//! @brief Change the mode of the CSV utility
 	//! @param mode - UTILITY_WRITE_TYPE to open the file as
-	//! @param close - an override to force close the file if its open
 	//! @return bool: true if successful, false is failed
-	bool ChangeCSVUtilityWritingType(UTILITY_WRITE_TYPE type, bool close);
+	bool ChangeCSVUtilityWritingType(UTILITY_WRITE_TYPE type);
 
 	//! @brief Write out column headers.
 	//! @param names - vector of strings to write as columns headers
@@ -199,5 +197,6 @@ private:
 	UTILITY_MODE		mMode;					//!< Current mode of the utility
 	UTILITY_WRITE_TYPE	mType;					//!< Current writing type of the utility
 	std::string			mFilename;				//!< Current filename
+	bool				mFileSet;				//!< Flag to check if filename has been set.
 	char				mDelimiter;				//!< Delimiter to use in file output
 };

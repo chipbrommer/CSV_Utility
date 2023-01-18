@@ -23,11 +23,14 @@ CSV_Utility::CSV_Utility()
 	mUser = "CSVUtility";
 	mDelimiter = ',';
 	mExtension = ".csv";
+	mFilename = "";
+	mFileSet = false;
 }
 
 CSV_Utility::CSV_Utility(const std::string filename, const UTILITY_MODE mode = UTILITY_MODE::READWRITE, const UTILITY_WRITE_TYPE type = UTILITY_WRITE_TYPE::TRUNC)
 {
 	mFilename = filename;
+	mFileSet = true;
 	mUser = "CSVUtility";
 	mDelimiter = ',';
 	mExtension = ".csv";
@@ -37,30 +40,36 @@ CSV_Utility::CSV_Utility(const std::string filename, const UTILITY_MODE mode = U
 
 CSV_Utility::~CSV_Utility()
 {
-	CloseFile();
+	mFile.close();
 }
 
 int CSV_Utility::SetFileName(const std::string filename)
 {
-	if (IsFileOpen())
+	// already open. 
+	if (mFile.is_open())
 	{
 		return -1;
 	}
 
+	// Set name. 
 	mFilename = filename;
 
+	// if filenames are equal, success. 
 	if (mFilename == filename)
 	{
 		return 1;
 	}
-	
+	// failed. 
 	return 0;
 }
 
 bool CSV_Utility::ChangeDelimiter(char delimiter)
 {
-	printf_s("Received new delimiter: %c\n", delimiter);
-	mDelimiter = delimiter;
+#ifdef CPP_LOGGER
+	log->AddEntry(LOG_LEVEL::LOG_ERROR, mUser, "Received new delimiter: %c", delimiter);
+#else
+	printf_s("%s - Received new delimiter: %c\n", mUser, delimiter);
+#endif
 
 	mDelimiter = delimiter;
 
@@ -72,57 +81,67 @@ bool CSV_Utility::ChangeDelimiter(char delimiter)
 	return false;
 }
 
-bool CSV_Utility::ChangeCSVUtilityMode(UTILITY_MODE mode, bool close = false)
+bool CSV_Utility::ChangeCSVUtilityMode(UTILITY_MODE mode)
 {
+	bool open = false;
+	// if the file is open, check the close bool. 
 	if (mFile.is_open())
 	{
-		if (close)
-		{
-			CloseFile();
-		}
-		else
-		{
-			return false;
-		}
+		open = true;
+		mFile.close();
 	}
 
 	mMode = mode;
 
+	// If modes equal, attempt to re-open file. 
 	if(mMode == mode)
 	{
-		return true;
+		// if file was open before change, attempt to re-open. 
+		if (open)
+		{
+			// if file is open is successful, return true, else return false.
+			if (OpenFile())
+			{
+				return true;
+			}
+			return false;
+		}
 	}
-
 	return false;
 }
 
-bool CSV_Utility::ChangeCSVUtilityWritingType(UTILITY_WRITE_TYPE type, bool close = false)
+bool CSV_Utility::ChangeCSVUtilityWritingType(UTILITY_WRITE_TYPE type)
 {
+	bool open = false;
+	// if the file is open, check the close bool. 
 	if (mFile.is_open())
 	{
-		if (close)
-		{
-			CloseFile();
-		}
-		else
-		{
-			return false;
-		}
+		open = true;
+		mFile.close();
 	}
 
 	mType = type;
 
+	// If modes equal, attempt to re-open file. 
 	if (mType == type)
 	{
-		return true;
+		// if file was open before change, attempt to re-open. 
+		if (open)
+		{
+			// if file is open is successful, return true, else return false.
+			if (OpenFile())
+			{
+				return true;
+			}
+			return false;
+		}
 	}
-
 	return false;
 }
 
 int CSV_Utility::WriteColumnHeaders(const std::vector<std::string>& names)
 {
-	if (!IsFileOpen() || (mMode != UTILITY_MODE::WRITE && mMode != UTILITY_MODE::READWRITE))
+	if (!mFile.is_open() || (mMode != UTILITY_MODE::WRITE && mMode != UTILITY_MODE::READWRITE))
 	{
 		return -1;
 	}
@@ -140,7 +159,7 @@ int CSV_Utility::WriteColumnHeaders(const std::vector<std::string>& names)
 
 bool CSV_Utility::ReadRow(std::string& values, int rowNum = 1)
 {
-	if (!IsFileOpen())
+	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READWRITE))
 	{
 		return false;
 	}
@@ -150,8 +169,6 @@ bool CSV_Utility::ReadRow(std::string& values, int rowNum = 1)
 		// Save current position and then go to top of file. 
 		auto curr_pos = mFile.tellg();
 		mFile.seekg(0, std::ios::beg);
-
-		auto pos2 = mFile.tellg();
 
 		// Find the row and get the contents
 		for (int i = 1; i < rowNum+1; i++)
@@ -224,23 +241,28 @@ int CSV_Utility::GetNumberOfRows()
 		return -1;
 	}
 
-	int count = 0;
-	std::string line = "";
-
-	// TODO Get current location
-
-	// Move to top of file
-	mFile.seekg(0, std::ios::beg);
-
-	// While loop to count numbers of rows. 
-	while (getline(mFile, line))
+	if (mFile.good() || mFile.eof())
 	{
-		count++;
+		int count = 0;
+		std::string line = "";
+
+		// Get current position - then move to top of file. 
+		auto curr_pos = mFile.tellg();
+		mFile.seekg(0, std::ios::beg);
+
+		// While loop to count numbers of rows. 
+		while (getline(mFile, line))
+		{
+			count++;
+		}
+
+		// Return to position
+		mFile.seekp(curr_pos);
+
+		return count;
 	}
 
-	// TODO return to location
-
-	return count;
+	return -1;
 }
 
 int CSV_Utility::WriteFullCSV(const std::string filename, std::vector<int> const& values)
@@ -349,24 +371,26 @@ void CSV_Utility::PrintCSVData()
 		return;
 	}
 
-	mFile.seekg(0, std::ios::beg);
-
-	if (mFile.good())
+	if (mFile.good() || mFile.eof())
 	{
+		// Save current position and then go to top of file. 
+		auto curr_pos = mFile.tellg();
+
+		// Seek to the top and print the entire file. 
 		mFile.seekg(0, std::ios::beg);
 		std::string line;
-
 		while (std::getline(mFile, line))
 		{
 			printf("%s\n", line.c_str());
 		}
+
+		// Return to position
+		mFile.seekp(curr_pos);
 	}
 	else
 	{
 		CatchFailReason();
 	}
-
-	printf("\n");
 }
 
 bool CSV_Utility::IsEndOfFile()
@@ -381,35 +405,57 @@ bool CSV_Utility::ClearFile()
 		mFile.close();
 	}
 
-	mFile.open(mFilename, std::ios::out | std::ios::trunc);
+	if (mFilename != "")
+	{
+		// Open the file as output and truncating to clear all content - then re-close.
+		mFile.open(mFilename, std::ios::out | std::ios::trunc);
+		mFile.close();
 
-	mFile.close();
+		return true;
+	}
 
-	return true;
+	return false;
 }
 
 size_t CSV_Utility::GetFileSize()
 {
 	// Check if file is not open. 
-	if (!IsFileOpen())
+	if (!mFile.is_open())
 	{
 		return -1;
 	}
 
-	// TODO get current position.
+	if (mFile.good() || mFile.eof())
+	{
+		// Save current position and then go to top of file. 
+		auto curr_pos = mFile.tellg();
 
-	long fsize = 0;
-	mFile.seekg(0, std::ios::end);
-	fsize = mFile.tellg();
-	mFile.seekg(0, std::ios::beg);
+		// Seek to end and get the size
+		long fsize = 0;
+		mFile.seekg(0, std::ios::end);
+		fsize = mFile.tellg();
 
-	// TODO put at original position
+		// Return to position
+		mFile.seekp(curr_pos);
 
-	return fsize;
+		return fsize;
+	}
+	else
+	{
+		CatchFailReason();
+	}
+
+	return -1;
 }
 
 bool CSV_Utility::OpenFile()
 {
+	// Check if filename has been set.
+	if (!mFileSet)
+	{
+		return false;
+	}
+
 	// Get the Logger instance if its included
 #ifdef CPP_LOGGER
 	Log* log = log->GetInstance();
@@ -501,9 +547,15 @@ bool CSV_Utility::CloseFile()
 	if (mFile.is_open())
 	{
 		mFile.close();
+		mFilename = "";
+		mFileSet = false;
+
+		if (mFile.is_open())
+		{
+			return false;
+		}
 		return true;
 	}
-
 	return false;
 }
 

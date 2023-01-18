@@ -4,23 +4,6 @@
 #include <iostream>
 #include "CSV_Utility.h"
 
-template<typename T>
-int Write(const std::vector<T>& values)
-{
-    int count = 0;
-    for (typename std::vector<T>::const_iterator it = values.begin(); it != values.end(); ++it)
-    {
-        std::cout << *it;
-        if (it + 1 != values.end())
-        {
-            std::cout << ',';
-        }
-        count++;
-    }
-    std::cout << "\n";
-    return count;
-}
-
 int main()
 {
     CSV_Utility csv;
@@ -38,7 +21,8 @@ int main()
     csv.WriteRow(vi);
     csv.WriteRow(vf);
     csv.WriteRow(vc);
-    //std::cout << "\n" << csv.GetFileSize();
+    
+    printf("\nFile Size: %d\n", csv.GetFileSize());
 
     //int c = csv.GetNumberOfColumns();
     //int r = csv.GetNumberOfRows();
