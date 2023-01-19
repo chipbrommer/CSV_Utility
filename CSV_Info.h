@@ -1,7 +1,24 @@
+///////////////////////////////////////////////////////////////////////////////
+//!
+//! @file		CSV_Info.h
+//! 
+//! @brief		Info file for the CSV Utility
+//! 
+//! @author		Chip Brommer
+//! 
+//! @date		< 1 / 15 / 2022 > Initial Start Date
+//!
+/*****************************************************************************/
 #pragma once
+///////////////////////////////////////////////////////////////////////////////
+//
+//  Include files:
+//          name                        reason included
+//          --------------------        ---------------------------------------
+#include <string>                       // strings
+#include <vector>                       // vectors
 
-#include <string>
-#include <vector>
+///////////////////////////////////////////////////////////////////////////////
 
 //! @brief Define Date Class
 class CSVFileInfo

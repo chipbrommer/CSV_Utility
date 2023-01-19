@@ -41,6 +41,16 @@ int main()
     csv.ReadRow(s, 2);
     printf("\nReadRow 2: %s\n", s.c_str());
 
+    printf("Read Column Test:\n");
+    std::vector<std::string>ci;
+    csv.ReadColumn(ci, 2);
+    for (std::vector<std::string>::iterator it = ci.begin(); it != ci.end(); ++it)
+    {
+        std::string temp = *it;
+        int index = (int)std::distance(ci.begin(), it);
+        printf_s("\t\tRow %d: \"%s\"\n", index + 1, temp.c_str());
+    }
+
     printf("\nColumn Names:\n");
     std::vector<std::string> names;
     csv.GetColumnHeaders(names);

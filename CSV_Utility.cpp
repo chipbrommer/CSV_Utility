@@ -21,18 +21,15 @@
 CSV_Utility::CSV_Utility()
 {
 	mUser = "CSVUtility";
-	mDelimiter = ',';
+	dCSVFileInfo.delimiter = ',';
 	mExtension = ".csv";
-	mFilename = "";
-	mFileSet = false;
 }
 
 CSV_Utility::CSV_Utility(const std::string filename, const UTILITY_MODE mode = UTILITY_MODE::READ_WRITE_TRUNC)
 {
-	mFilename = filename;
-	mFileSet = true;
+	dCSVFileInfo.filename = filename;
 	mUser = "CSVUtility";
-	mDelimiter = ',';
+	dCSVFileInfo.delimiter = ',';
 	mExtension = ".csv";
 	mMode = mode;
 }
@@ -51,12 +48,11 @@ int CSV_Utility::SetFileName(const std::string filename)
 	}
 
 	// Set name. 
-	mFilename = filename;
+	dCSVFileInfo.filename = filename;
 
 	// if filenames are equal, success. 
-	if (mFilename == filename)
+	if (dCSVFileInfo.filename == filename)
 	{
-		mFileSet = true;
 		return 1;
 	}
 	// failed. 
@@ -73,8 +69,8 @@ bool CSV_Utility::ChangeDelimiter(const char delimiter)
 #endif
 
 	// Set the new delimiter and verify return true if good.
-	mDelimiter = delimiter;
-	if (mDelimiter == delimiter)
+	dCSVFileInfo.delimiter = delimiter;
+	if (dCSVFileInfo.delimiter == delimiter)
 	{
 		return true;
 	}
@@ -186,12 +182,22 @@ bool CSV_Utility::ReadRow(std::string& values, const int row = 0)
 	return false;
 }
 
-bool CSV_Utility::ReadColumn(std::vector<std::string>values, const int column)
+bool CSV_Utility::ReadColumn(std::vector<std::string>& values, const int column)
 {
 	// Make sure file is open and we are in a read mode
 	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READ_WRITE_APPEND && mMode != UTILITY_MODE::READ_WRITE_TRUNC))
 	{
 		return false;
+	}
+
+	// make sure column is more than 0
+	if (column < 1)
+	{
+#ifdef CPP_LOGGER
+		log->AddEntry(LOG_LEVEL::LOG_ERROR, mUser, "ReadColumn - Column input must be more than 0");
+#else
+		printf_s("%s - ReadColumn - Column input must be more than 0.\n", mUser.c_str());
+#endif
 	}
 
 	// Verify file handle is good. 
@@ -201,11 +207,25 @@ bool CSV_Utility::ReadColumn(std::vector<std::string>values, const int column)
 		auto curr_pos = mFile.tellg();
 		mFile.seekg(0, std::ios::beg);
 
-		// TODO - actual work in the file. 
-		// get line, parse line, get the value at the column specified and push to values vector. 
-		// until the file has no lines to parse. 
+		// Update the file info, then loop through the rows, grabbing the desired column from each row.
+		UpdateFileInfo();
+		std::vector<std::string>temp;
+		
+		for (int rowNum = 1; rowNum < dCSVFileInfo.n_rows + 1; rowNum++)
+		{
+			std::string row;
+			int count = 0;
+			if (ReadRow(row, rowNum))
+			{
+				temp.clear();
+				count = ParseCSVBuffer(const_cast<char*>(row.c_str()), temp);
+			}
+
+			values.push_back(temp[column - 1]);
+		}
 			
 		// Return to position and return true
+		mFile.clear();
 		mFile.seekp(curr_pos);
 		return true;
 	}
@@ -229,6 +249,7 @@ int CSV_Utility::GetColumnHeaders(std::vector<std::string>& names)
 	// Verify file handle is good.  
 	if (mFile.good() || mFile.eof())
 	{
+		names.clear();
 		// Read row 1 and parse the data to get the names.
 		std::string row;
 		int count = 0;
@@ -315,93 +336,10 @@ int CSV_Utility::GetNumberOfRows()
 	return -1;
 }
 
-int CSV_Utility::WriteFullCSV(const std::string filename, std::vector<int> const& values)
+int CSV_Utility::WriteFullCSV(const std::string filename, const std::vector<std::vector<std::string>>& values)
 {
-	// Get the Logger instance if its included
-#ifdef CPP_LOGGER
-	Log* log = log->GetInstance();
-#endif
-
-	// Create a local copy of the filename.
-	std::string outputFile = filename;
-
-	// Verify outputFile is a valid file path / file name
-	size_t i = outputFile.rfind('/', outputFile.length());
-	if (i == std::string::npos)
-	{
-#ifdef CPP_LOGGER
-		log->AddEntry(LOG_LEVEL::LOG_ERROR, mUser, "Log path is not a valid path.");
-#else
-		printf_s("%s - Log path is not a valid path.\n", mUser.c_str());
-#endif
-		return -1;
-	}
-	std::string directoryPath = outputFile.substr(0, i);
-
-	// Make the directory if it doesn't exist
-	struct stat st = { 0 };
-	if (stat(directoryPath.c_str(), &st) == -1)
-	{
-		int made = 0;
-#ifdef _WIN32
-		made = _mkdir(directoryPath.c_str());
-#else
-		made = mkdir(directoryPath.c_str(), 0777);
-#endif
-		if (made == -1)
-		{
-			char buffer[256];
-			strerror_s(buffer, sizeof(buffer), errno); // get string message from errno, XSI-compliant version
-
-#ifdef CPP_LOGGER
-			log->AddEntry(LOG_LEVEL::LOG_ERROR, mUser, "Error %s", buffer);
-#else
-			printf_s("%s - Error %s\n", mUser.c_str(), buffer);
-#endif
-		}
-	}
-
-	// Check if outputFile has an extension =, if not, add default extension.
-	if (!std::filesystem::path(outputFile).has_extension())
-	{
-		outputFile += mExtension;
-#ifdef CPP_LOGGER
-		log->AddEntry(LOG_LEVEL::LOG_INFO, mUser, "WriteCSV received a file name with no extension, adding default extension: %s", mExtension.c_str());
-#else
-		printf_s("%s - WriteCSV received a file name with no extension, adding default extension: %s.\n", mUser.c_str(), mExtension.c_str());
-#endif
-	}
-
-	// Create file and catch a bad handle
-	FILE* handle;
-	int open = fopen_s(&handle, outputFile.c_str(), "w");
-
-	if (open != 0)
-	{
-#ifdef CPP_LOGGER
-		log->AddEntry(LOG_LEVEL::LOG_ERROR, mUser, "Failed to open the output file.");
-#else
-		printf_s("%s - Failed to open the output file.\n", mUser.c_str());
-#endif
-		return -1;
-	}
-	else
-	{
-		for (std::vector<int>::const_iterator it = values.begin(); it != values.end(); ++it)
-		{
-			fprintf_s(handle, "%d%c", *it, mDelimiter);
-		}
-
-		printf("Size: %zd\n", values.size());
-	}
-
-#ifdef CPP_LOGGER
-	log->AddEntry(LOG_LEVEL::LOG_INFO, mUser, "File write successful to %s", outputFile.c_str());
-#else
-	printf_s("%s - File write successful to %s\n", mUser.c_str(), outputFile.c_str());
-#endif
-
-	return 1;
+	// TODO 
+	return 0;
 }
 
 int CSV_Utility::ParseCSVBuffer(char* buffer, std::vector<std::string>& values)
@@ -417,13 +355,13 @@ int CSV_Utility::ParseCSVBuffer(char* buffer, std::vector<std::string>& values)
 	{
 		// Returns first value from the buffer prior to the delimiter
 		char* nextToken = NULL;
-		char* token = strtok_s(buffer, &mDelimiter, &nextToken);
+		char* token = strtok_s(buffer, &dCSVFileInfo.delimiter, &nextToken);
 
 		// While there are more values in the string, attempt to parse at the delimiter
 		while (token != NULL)
 		{
 			values.push_back(token);
-			token = strtok_s(NULL, &mDelimiter, &nextToken);
+			token = strtok_s(NULL, &dCSVFileInfo.delimiter, &nextToken);
 		}
 
 		// Return the number of values found
@@ -433,12 +371,12 @@ int CSV_Utility::ParseCSVBuffer(char* buffer, std::vector<std::string>& values)
 	{
 		CatchFailReason();
 	}
-
+	
 	// Default return
 	return 0;
 }
 
-int CSV_Utility::ParseCSVFile(FILE* handle, std::vector<int>& values)
+int CSV_Utility::ParseCSVFile(std::fstream* handle, std::vector<std::vector<std::string>>& values)
 {
 	// TODO
 	return 0;
@@ -528,10 +466,10 @@ bool CSV_Utility::ClearFile()
 	}
 
 	// While the filename isnt empty
-	if (!mFilename.empty())
+	if (!dCSVFileInfo.filename.empty())
 	{
 		// Open the file as output and truncating to clear all content - then re-close.
-		mFile.open(mFilename, std::ios::out | std::ios::trunc);
+		mFile.open(dCSVFileInfo.filename, UTILITY_MODE::WRITE_TRUNC);
 		mFile.close();
 
 		return true;
@@ -575,7 +513,7 @@ size_t CSV_Utility::GetFileSize()
 bool CSV_Utility::OpenFile()
 {
 	// Check if filename has been set.
-	if (!mFileSet)
+	if (dCSVFileInfo.filename.empty())
 	{
 		return false;
 	}
@@ -586,7 +524,7 @@ bool CSV_Utility::OpenFile()
 #endif
 
 	// Verify outputFile is a valid file path / file name
-	size_t i = mFilename.rfind('/', mFilename.length());
+	size_t i = dCSVFileInfo.filename.rfind('/', dCSVFileInfo.filename.length());
 	if (i == std::string::npos)
 	{
 #ifdef CPP_LOGGER
@@ -596,7 +534,7 @@ bool CSV_Utility::OpenFile()
 #endif
 		return false;
 	}
-	std::string directoryPath = mFilename.substr(0, i);
+	std::string directoryPath = dCSVFileInfo.filename.substr(0, i);
 
 	// Make the directory if it doesn't exist
 	struct stat st = { 0 };
@@ -622,9 +560,9 @@ bool CSV_Utility::OpenFile()
 	}
 
 	// Check if outputFile has an extension, if not, add default extension.
-	if (!std::filesystem::path(mFilename).has_extension())
+	if (!std::filesystem::path(dCSVFileInfo.filename).has_extension())
 	{
-		mFilename += mExtension;
+		dCSVFileInfo.filename += mExtension;
 #ifdef CPP_LOGGER
 		log->AddEntry(LOG_LEVEL::LOG_INFO, mUser, "OpenFile - filename has no extension, adding default extension: %s", mExtension.c_str());
 #else
@@ -633,7 +571,7 @@ bool CSV_Utility::OpenFile()
 	}
 
 	// open
-	mFile.open(mFilename, mMode);
+	mFile.open(dCSVFileInfo.filename, mMode);
 	if (!mFile.is_open())
 	{
 #ifdef CPP_LOGGER
@@ -651,9 +589,9 @@ bool CSV_Utility::OpenFile()
 
 		// Success
 #ifdef CPP_LOGGER
-		log->AddEntry(LOG_LEVEL::LOG_INFO, mUser, "File open successful: %s", mFilename.c_str());
+		log->AddEntry(LOG_LEVEL::LOG_INFO, mUser, "File open successful: %s", dCSVFileInfo.filename.c_str());
 #else
-		//printf_s("%s - File open successful: %s\n", mUser.c_str(), mFilename.c_str());
+		printf_s("%s - File open successful: %s\n", mUser.c_str(), dCSVFileInfo.filename.c_str());
 #endif
 		return true;
 	}
@@ -676,8 +614,7 @@ bool CSV_Utility::CloseFile()
 	{
 		// Close the file, clear the filename and reset the file flag
 		mFile.close();
-		mFilename = "";
-		mFileSet = false;
+		dCSVFileInfo.filename = "";
 
 		// Verify file is closed and return appropriately. 
 		if (mFile.is_open())
@@ -701,10 +638,11 @@ void CSV_Utility::CatchFailReason()
 
 void CSV_Utility::UpdateFileInfo()
 {
-	dCSVFileInfo.delimiter = mDelimiter;
-	dCSVFileInfo.filename = mFilename;
-	GetColumnHeaders(dCSVFileInfo.col_names);
-	dCSVFileInfo.n_cols = GetNumberOfColumns();
-	dCSVFileInfo.n_rows = GetNumberOfRows();
-	dCSVFileInfo.filesize = GetFileSize();
+	if (!dCSVFileInfo.filename.empty())
+	{
+		GetColumnHeaders(dCSVFileInfo.col_names);
+		dCSVFileInfo.n_cols = GetNumberOfColumns();
+		dCSVFileInfo.n_rows = GetNumberOfRows();
+		dCSVFileInfo.filesize = GetFileSize();
+	}
 }
