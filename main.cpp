@@ -8,8 +8,7 @@ int main()
 {
     CSV_Utility csv;
     csv.SetFileName("test/temp.csv");
-    csv.ChangeCSVUtilityMode(UTILITY_MODE::READWRITE);
-    csv.ChangeCSVUtilityWritingType(UTILITY_WRITE_TYPE::TRUNC);
+    csv.ChangeCSVUtilityMode(UTILITY_MODE::READ_WRITE_TRUNC);
     csv.OpenFile();
 
     std::vector<std::string> cols{ "one", "two", "three" };
@@ -59,6 +58,11 @@ int main()
             printf_s("%s%s", temp.c_str(), ", ");
         }
     }
+
+    printf("\nStruct Test:\n");
+    CSVFileInfo cs;
+    csv.GetFileInfo(cs);
+    std::cout << cs;
 
     csv.CloseFile();
     return 0;

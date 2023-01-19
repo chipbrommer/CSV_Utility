@@ -27,7 +27,7 @@ CSV_Utility::CSV_Utility()
 	mFileSet = false;
 }
 
-CSV_Utility::CSV_Utility(const std::string filename, const UTILITY_MODE mode = UTILITY_MODE::READWRITE, const UTILITY_WRITE_TYPE type = UTILITY_WRITE_TYPE::TRUNC)
+CSV_Utility::CSV_Utility(const std::string filename, const UTILITY_MODE mode = UTILITY_MODE::READ_WRITE_TRUNC)
 {
 	mFilename = filename;
 	mFileSet = true;
@@ -35,7 +35,6 @@ CSV_Utility::CSV_Utility(const std::string filename, const UTILITY_MODE mode = U
 	mDelimiter = ',';
 	mExtension = ".csv";
 	mMode = mode;
-	mType = type;
 }
 
 CSV_Utility::~CSV_Utility()
@@ -45,7 +44,7 @@ CSV_Utility::~CSV_Utility()
 
 int CSV_Utility::SetFileName(const std::string filename)
 {
-	// already open. 
+	// File already open, cant set name. 
 	if (mFile.is_open())
 	{
 		return -1;
@@ -87,7 +86,7 @@ bool CSV_Utility::ChangeDelimiter(const char delimiter)
 bool CSV_Utility::ChangeCSVUtilityMode(const UTILITY_MODE mode)
 {
 	bool open = false;
-	// if the file is open, close it. 
+	// If the file is open, close it. 
 	if (mFile.is_open())
 	{
 		open = true;
@@ -100,10 +99,10 @@ bool CSV_Utility::ChangeCSVUtilityMode(const UTILITY_MODE mode)
 	// If modes equal, attempt to re-open file. 
 	if(mMode == mode)
 	{
-		// if file was open before change, attempt to re-open. 
+		// If file was open before change, attempt to re-open. 
 		if (open)
 		{
-			// if file is open is successful, return true, else return false.
+			// If file is open is successful, return true, else return false.
 			if (OpenFile())
 			{
 				return true;
@@ -111,36 +110,8 @@ bool CSV_Utility::ChangeCSVUtilityMode(const UTILITY_MODE mode)
 			return false;
 		}
 	}
-	return false;
-}
 
-bool CSV_Utility::ChangeCSVUtilityWritingType(const UTILITY_WRITE_TYPE type)
-{
-	bool open = false;
-	// if the file is open, close it
-	if (mFile.is_open())
-	{
-		open = true;
-		mFile.close();
-	}
-
-	// Set the new type
-	mType = type;
-
-	// If modes equal, attempt to re-open file. 
-	if (mType == type)
-	{
-		// if file was open before change, attempt to re-open. 
-		if (open)
-		{
-			// if file is open is successful, return true, else return false.
-			if (OpenFile())
-			{
-				return true;
-			}
-			return false;
-		}
-	}
+	// Default return
 	return false;
 }
 
@@ -152,7 +123,8 @@ int CSV_Utility::WriteColumnHeaders(const std::vector<std::string>& names)
 	*/
 
 	// Make sure file is open and we are in a write mode
-	if (!mFile.is_open() || (mMode != UTILITY_MODE::WRITE && mMode != UTILITY_MODE::READWRITE))
+	if (!mFile.is_open() || (mMode != UTILITY_MODE::WRITE_APPEND && mMode != UTILITY_MODE::WRITE_TRUNC &&
+		mMode != UTILITY_MODE::READ_WRITE_APPEND && mMode != UTILITY_MODE::READ_WRITE_TRUNC))
 	{
 		return -1;
 	}
@@ -168,7 +140,7 @@ int CSV_Utility::WriteColumnHeaders(const std::vector<std::string>& names)
 bool CSV_Utility::ReadRow(std::string& values, const int row = 0)
 {
 	// Make sure file is open and we are in a read mode
-	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READWRITE))
+	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READ_WRITE_APPEND && mMode != UTILITY_MODE::READ_WRITE_TRUNC))
 	{
 		return false;
 	}
@@ -201,6 +173,7 @@ bool CSV_Utility::ReadRow(std::string& values, const int row = 0)
 		}
 
 		// Return to position and return true
+		mFile.clear();
 		mFile.seekp(curr_pos);
 		return true;
 	}
@@ -213,16 +186,42 @@ bool CSV_Utility::ReadRow(std::string& values, const int row = 0)
 	return false;
 }
 
-bool ReadColumn(std::vector<std::string>values, const int column)
+bool CSV_Utility::ReadColumn(std::vector<std::string>values, const int column)
 {
-	// TODO
+	// Make sure file is open and we are in a read mode
+	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READ_WRITE_APPEND && mMode != UTILITY_MODE::READ_WRITE_TRUNC))
+	{
+		return false;
+	}
+
+	// Verify file handle is good. 
+	if (mFile.good() || mFile.eof())
+	{
+		// Save current position and then go to top of file. 
+		auto curr_pos = mFile.tellg();
+		mFile.seekg(0, std::ios::beg);
+
+		// TODO - actual work in the file. 
+		// get line, parse line, get the value at the column specified and push to values vector. 
+		// until the file has no lines to parse. 
+			
+		// Return to position and return true
+		mFile.seekp(curr_pos);
+		return true;
+	}
+	else
+	{
+		CatchFailReason();
+	}
+
+	// Default return
 	return false;
 }
 
 int CSV_Utility::GetColumnHeaders(std::vector<std::string>& names)
 {
 	// Make sure file is open and we are in a read mode
-	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READWRITE))
+	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READ_WRITE_APPEND && mMode != UTILITY_MODE::READ_WRITE_TRUNC))
 	{
 		return false;
 	}
@@ -253,7 +252,7 @@ int CSV_Utility::GetColumnHeaders(std::vector<std::string>& names)
 int CSV_Utility::GetNumberOfColumns()
 {
 	// Make sure file is open and we are in a read mode
-	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READWRITE))
+	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READ_WRITE_APPEND && mMode != UTILITY_MODE::READ_WRITE_TRUNC))
 	{
 		return -1;
 	}
@@ -286,7 +285,7 @@ int CSV_Utility::GetNumberOfColumns()
 int CSV_Utility::GetNumberOfRows()
 {
 	// Make sure file is open and we are in a read mode
-	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READWRITE))
+	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READ_WRITE_APPEND && mMode != UTILITY_MODE::READ_WRITE_TRUNC))
 	{
 		return -1;
 	}
@@ -408,7 +407,7 @@ int CSV_Utility::WriteFullCSV(const std::string filename, std::vector<int> const
 int CSV_Utility::ParseCSVBuffer(char* buffer, std::vector<std::string>& values)
 {
 	// Make sure file is open and we are in a read mode
-	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READWRITE))
+	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READ_WRITE_APPEND && mMode != UTILITY_MODE::READ_WRITE_TRUNC))
 	{
 		return false;
 	}
@@ -448,7 +447,7 @@ int CSV_Utility::ParseCSVFile(FILE* handle, std::vector<int>& values)
 void CSV_Utility::PrintCSVData()
 {
 	// Make sure file is open and we are in a read mode
-	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READWRITE))
+	if (!mFile.is_open() || (mMode != UTILITY_MODE::READ && mMode != UTILITY_MODE::READ_WRITE_APPEND && mMode != UTILITY_MODE::READ_WRITE_TRUNC))
 	{
 		return;
 	}
@@ -481,6 +480,43 @@ void CSV_Utility::PrintCSVData()
 bool CSV_Utility::IsEndOfFile()
 {
 	return mFile.eof();
+}
+
+bool CSV_Utility::GetFileInfo(CSVFileInfo& info)
+{
+	// Update info
+	UpdateFileInfo();
+
+	// If file info is valid, set the data
+	if (dCSVFileInfo.Valid())
+	{
+		info = dCSVFileInfo;
+
+		return true;
+	}
+
+	// Default return
+	return false;
+}
+
+bool CSV_Utility::GetFileInfo(std::string& filename, double size, int columns, int rows)
+{
+	// Update info
+	UpdateFileInfo();
+
+	// If file info is valid, set the data
+	if (dCSVFileInfo.Valid())
+	{
+		filename = dCSVFileInfo.filename;
+		size = (double)dCSVFileInfo.filesize;
+		columns = dCSVFileInfo.n_cols;
+		rows = dCSVFileInfo.n_rows;
+
+		return true;
+	}
+
+	// Default return
+	return false;
 }
 
 bool CSV_Utility::ClearFile()
@@ -596,8 +632,8 @@ bool CSV_Utility::OpenFile()
 #endif
 	}
 
-	// Create the file and verify its open.
-	mFile.open(mFilename, std::ios::out | std::ios::in | std::ios::trunc);
+	// open
+	mFile.open(mFilename, mMode);
 	if (!mFile.is_open())
 	{
 #ifdef CPP_LOGGER
@@ -610,11 +646,14 @@ bool CSV_Utility::OpenFile()
 
 	if (mFile.good())
 	{
+		// Get file data. 
+		UpdateFileInfo();
+
 		// Success
 #ifdef CPP_LOGGER
 		log->AddEntry(LOG_LEVEL::LOG_INFO, mUser, "File open successful: %s", mFilename.c_str());
 #else
-		printf_s("%s - File open successful: %s\n", mUser.c_str(), mFilename.c_str());
+		//printf_s("%s - File open successful: %s\n", mUser.c_str(), mFilename.c_str());
 #endif
 		return true;
 	}
@@ -658,4 +697,14 @@ void CSV_Utility::CatchFailReason()
 	else if (mFile.bad()) { printf("Bad bit set.\n"); }
 	else if (mFile.fail()) { printf("Fail bit set.\n"); }
 	else { printf("Unknown failure.\n"); }
+}
+
+void CSV_Utility::UpdateFileInfo()
+{
+	dCSVFileInfo.delimiter = mDelimiter;
+	dCSVFileInfo.filename = mFilename;
+	GetColumnHeaders(dCSVFileInfo.col_names);
+	dCSVFileInfo.n_cols = GetNumberOfColumns();
+	dCSVFileInfo.n_rows = GetNumberOfRows();
+	dCSVFileInfo.filesize = GetFileSize();
 }

@@ -32,6 +32,8 @@
 #include <iostream>						// Standard IO
 #include <mutex>						// Data protection
 #include <filesystem>					// Checking for file extension
+//
+#include "CSV_Info.h"					// CSV Utility Information
 // 
 //	Defines:
 //          name                        reason defined
@@ -41,29 +43,6 @@
 #endif
 //
 ///////////////////////////////////////////////////////////////////////////////
-
-	/** Returned by get_file_info() */
-struct CSVFileInfo 
-{
-	std::string filename;					// Filename 
-	std::vector<std::string> col_names;		// CSV column names 
-	char delimiter;							// Delimiting character 
-	size_t n_rows;							// Number of rows in a file 
-	size_t n_cols;							// Number of columns in a CSV 
-};
-
-enum class UTILITY_MODE : const int
-{
-	WRITE		= 1,
-	READ		= 2,
-	READWRITE	= 3,
-};
-
-enum class UTILITY_WRITE_TYPE : const int
-{
-	APPEND,
-	TRUNC,
-};
 
 //! @brief A CSV utility class to parse and write CSV files. 
 class CSV_Utility
@@ -75,8 +54,7 @@ public:
 	//! @brief Overloaded Constructor
 	//! @param filename - string containing the desired filename to read or write to.
 	//! @param mode - the mode of the CSV utility (read, write, readwrite)
-	//! @param type - the type of the CSV utility (trunc, append)
-	CSV_Utility(const std::string filename, const UTILITY_MODE mode, const UTILITY_WRITE_TYPE type);
+	CSV_Utility(const std::string filename, const UTILITY_MODE mode);
 
 	//! @brief Default Deconstructor
 	~CSV_Utility();
@@ -96,11 +74,6 @@ public:
 	//! @return bool: true if successful, false is failed
 	bool ChangeCSVUtilityMode(const UTILITY_MODE mode);
 
-	//! @brief Change the mode of the CSV utility
-	//! @param mode - UTILITY_WRITE_TYPE to open the file as
-	//! @return bool: true if successful, false is failed
-	bool ChangeCSVUtilityWritingType(const UTILITY_WRITE_TYPE type);
-
 	//! @brief Write out column headers.
 	//! @param names - vector of strings to write as columns headers
 	//! @return int: -1 on error, else the number of columns successfully written. 
@@ -113,12 +86,17 @@ public:
 	template<typename T>
 	int WriteRow(const std::vector<T>& values)
 	{
-		if (!IsFileOpen())
+		// Make sure file is open and we are in a write mode
+		if (!mFile.is_open() || (mMode != UTILITY_MODE::WRITE_APPEND && mMode != UTILITY_MODE::WRITE_TRUNC && 
+								mMode != UTILITY_MODE::READ_WRITE_APPEND && mMode != UTILITY_MODE::READ_WRITE_TRUNC))
 		{
-			return -1;
+			return false;
 		}
-		if (mFile.good())
+
+		// Verify file handle is good.  
+		if (mFile.good() || mFile.eof())
 		{
+			// write the values to the file, adding the delimited in between. 
 			int count = 0;
 			for (typename std::vector<T>::const_iterator it = values.begin(); it != values.end(); ++it)
 			{
@@ -130,12 +108,17 @@ public:
 				count++;
 			}
 			mFile << "\n";
+
+			// Increment the number of rows and return count.
+			dCSVFileInfo.n_rows++;
 			return count;
 		}
 		else
 		{
 			CatchFailReason();
 		}
+
+		// Default return
 		return -1;
 	}
 
@@ -189,6 +172,19 @@ public:
 	//! @return bool: true if the end, false if not.
 	bool IsEndOfFile();
 
+	//! @brief Get the information for the current file. 
+	//! @param info - CSVFileInfo structure to place the files information.
+	//! @return bool: true if data is vaid, else false. 
+	bool GetFileInfo(CSVFileInfo& info);
+
+	//! @brief Get the information for the current file. 
+	//! @param filename - [out] - the current filename opened.
+	//! @param size - [out] - the size of the file. 
+	//! @param columns - [out] - the number of columns
+	//! @param rows - [out] - the number of rows
+	//! @return bool: true if data is vaid, else false. 
+	bool GetFileInfo(std::string& filename, double size, int columns, int rows);
+
 	//! @brief Clear the contents of the file
 	//! @return bool: true if successful, false if failed.
 	bool ClearFile();
@@ -212,13 +208,13 @@ public:
 protected:
 private:
 	void CatchFailReason();
+	void UpdateFileInfo();
 
 	std::string			mUser;					//!< Name for the class when using CPP_Logger
-	//CSVFileInfo		dCSVFileInfo;			//!< Current CSV File
+	CSVFileInfo			dCSVFileInfo;			//!< Current CSV File
 	std::fstream		mFile;					//!< File stream for in and out
 	std::string			mExtension;				//!< File Extension
 	UTILITY_MODE		mMode;					//!< Current mode of the utility
-	UTILITY_WRITE_TYPE	mType;					//!< Current writing type of the utility
 	std::string			mFilename;				//!< Current filename
 	bool				mFileSet;				//!< Flag to check if filename has been set.
 	char				mDelimiter;				//!< Delimiter to use in file output
