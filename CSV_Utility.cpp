@@ -375,7 +375,7 @@ int CSV_Utility::ParseCSVBuffer(char* buffer, std::vector<std::string>& values)
 	return 0;
 }
 
-bool CSV_Utility::ParseCSVFile(const std::string filename, , std::vector<std::vector<std::string>>& values)
+bool CSV_Utility::ParseCSVFile(const std::string filename, std::vector<std::vector<std::string>>& values)
 {
 	// Open the file.
 	std::fstream file;
