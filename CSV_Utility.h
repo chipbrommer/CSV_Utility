@@ -151,10 +151,10 @@ public:
 	//! @return bool: True if successful read, false if fail. 
 	bool ReadColumn(std::vector<std::string>values, const int column);
 
-	//! @brief Get the column names of a CSV file. 
+	//! @brief Get the column headers of a CSV file ( line 1 ). 
 	//! @param names - a vector of strings to store the parsed column names. 
 	//! @return int: -1 on error, else the number of column names. 
-	int GetColumnNames(std::vector<std::string>& names);
+	int GetColumnHeaders(std::vector<std::string>& names);
 
 	//! @brief Get the number of columns in a CSV file. 
 	//! @return int: -1 on error, else the number of columns in the file
@@ -174,7 +174,7 @@ public:
 	//! @param buffer - A char buffer to be parsed.
 	//! @param values - A vector to store the parsed values into.
 	//! @return -1 on error, else the number of values successfully parsed. 
-	int ParseCSVBuffer(std::string buffer, std::vector<std::string>& values);
+	int ParseCSVBuffer(char* buffer, std::vector<std::string>& values);
 
 	//! @brief Read in a CSV file and parse it. 
 	//! @param handle - A pointer to a file handle. 

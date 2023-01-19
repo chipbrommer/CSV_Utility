@@ -27,25 +27,37 @@ int main()
     printf("\nFile Size: %zu\n", csv.GetFileSize());
 
     int c = csv.GetNumberOfColumns();
-    int r = 0;//csv.GetNumberOfRows();
+    int r = csv.GetNumberOfRows();
     printf("Columns: %d , Rows: %d\n", c, r);
 
     std::string s = "";
-    csv.ReadRow(s, 1);
-    printf("ReadRow 1: %s\n", s.c_str());
     csv.ReadRow(s, 4);
-    printf("ReadRow 4: %s\n\n", s.c_str());
+    printf("ReadRow 4: %s\n", s.c_str());
+    csv.ReadRow(s, 1);
+    printf("ReadRow 1: %s\n\n", s.c_str());
 
     printf("Print Test:\n");
     csv.PrintCSVData();
 
+    csv.ReadRow(s, 2);
+    printf("\nReadRow 2: %s\n", s.c_str());
+
+    printf("\nColumn Names:\n");
     std::vector<std::string> names;
-    csv.GetColumnNames(names);
+    csv.GetColumnHeaders(names);
     
     for (std::vector<std::string>::const_iterator it = names.begin(); it != names.end(); ++it)
     {
         std::string temp = *it;
-        printf_s("%s %c", temp.c_str(), ',');
+
+        if (it == names.end()-1)
+        {
+            printf_s("%s\n", temp.c_str());
+        }
+        else
+        {
+            printf_s("%s%s", temp.c_str(), ", ");
+        }
     }
 
     csv.CloseFile();
