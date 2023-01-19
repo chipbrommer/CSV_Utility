@@ -17,7 +17,7 @@
 //          --------------------        ---------------------------------------
 #include <string>                       // strings
 #include <vector>                       // vectors
-
+//
 ///////////////////////////////////////////////////////////////////////////////
 
 //! @brief Define Date Class
@@ -74,6 +74,7 @@ public:
     }
 };
 
+//! @brief enum to hold the different combinations of modes for file use.
 enum UTILITY_MODE
 {
     READ = std::ios::in,

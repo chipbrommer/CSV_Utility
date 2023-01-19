@@ -160,13 +160,18 @@ public:
 	int ParseCSVBuffer(char* buffer, std::vector<std::string>& values);
 
 	//! @brief Read in a CSV file and parse it. 
-	//! @param handle - [in] - A pointer to a file handle. 
+	//! @param filename - [in] - A string filename to be printed. 
 	//! @param values - [out] - A vector of a vector of strings to store the parsed values into.
 	//! @return -1 on error, else the number of values successfully parsed. 
-	int ParseCSVFile(std::fstream* handle, std::vector<std::vector<std::string>>& values);
+	bool ParseCSVFile(const std::string filename, std::vector<std::vector<std::string>>& values);
 
 	//! @brief Prints a CSV files data contents to console. 
 	void PrintCSVData();
+
+	//! @brief Prints a CSV files data contents to console. 
+	//! @param filename - [in] - A string filename to be printed. 
+	//! @return bool: true if successful, else false. 
+	bool PrintCSVFile(const std::string filename);
 
 	//! @brief Check if the file is at the end.
 	//! @return bool: true if the end, false if not.

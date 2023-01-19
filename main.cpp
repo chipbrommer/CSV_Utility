@@ -6,7 +6,10 @@
 
 int main()
 {
+
     CSV_Utility csv;
+    csv.PrintCSVFile("test/temp.csv");
+    /*
     csv.SetFileName("test/temp.csv");
     csv.ChangeCSVUtilityMode(UTILITY_MODE::READ_WRITE_TRUNC);
     csv.OpenFile();
@@ -73,7 +76,9 @@ int main()
     CSVFileInfo cs;
     csv.GetFileInfo(cs);
     std::cout << cs;
-
+    
     csv.CloseFile();
+
+    */
     return 0;
 }
