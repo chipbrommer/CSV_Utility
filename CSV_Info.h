@@ -50,7 +50,7 @@ public:
             (n_rows != 0) && (n_cols != 0) && (filesize != 0);
     }
 
-    // Output data to neatly.
+    // Output data to stream neatly.
     friend std::ostream& operator<<(std::ostream& os, const CSVFileInfo& csv)
     {
         os  << "CSV Data: " << "\n";
