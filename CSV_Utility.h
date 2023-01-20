@@ -134,6 +134,11 @@ public:
 	//! @return bool: True if successful read, false if fail. 
 	bool ReadColumn(std::vector<std::string>& values, const int column);
 
+	//! @brief Remove a row of data from the file.
+	//! @param row - [in] - The number of the row to be removed.
+	//! @return bool: True if successful, false if fail. 
+	bool RemoveRow(const int row);
+
 	//! @brief Get the column headers of a CSV file ( line 1 ). 
 	//! @param names - [out] - a vector of strings to store the parsed column names. 
 	//! @return int: -1 on error, else the number of column names. 
@@ -147,11 +152,11 @@ public:
 	//! @return int: -1 if no file opened, else the number of rows found (including column names)
 	int GetNumberOfRows();
 
-	//! @brief Write a full group of data to a CSV file
+	//! @brief Write a full grouping of data to a CSV file
 	//! @param filename - [in] - char array containing the filename to be opened and written to
 	//! @param values - [in] - a vector of any type to write 
-	//! @return int: -1 on error, else the number of values successfully written to file. 
-	int WriteFullCSV(const std::string filename, const std::vector<std::vector<std::string>>& values);
+	//! @return bool: true if successful, else false.  
+	bool WriteAFullCSV(const std::string filename, const std::vector<std::vector<std::string>>& values);
 
 	//! @brief Parse a CSV Buffer.
 	//! @param buffer - [in] - A char buffer to be parsed.
@@ -159,19 +164,19 @@ public:
 	//! @return -1 on error, else the number of values successfully parsed. 
 	int ParseCSVBuffer(char* buffer, std::vector<std::string>& values);
 
-	//! @brief Read in a CSV file and parse it. 
+	//! @brief Read in any CSV file and parse it. 
 	//! @param filename - [in] - A string filename to be printed. 
 	//! @param values - [out] - A vector of a vector of strings to store the parsed values into.
 	//! @return -1 on error, else the number of values successfully parsed. 
-	bool ParseCSVFile(const std::string filename, std::vector<std::vector<std::string>>& values);
+	bool ParseAnyCSVFile(const std::string filename, std::vector<std::vector<std::string>>& values);
 
-	//! @brief Prints a CSV files data contents to console. 
+	//! @brief Prints the current CSV file data contents to console. 
 	void PrintCSVData();
 
-	//! @brief Prints a CSV files data contents to console. 
+	//! @brief Prints any CSV files data contents to console. 
 	//! @param filename - [in] - A string filename to be printed. 
 	//! @return bool: true if successful, else false. 
-	bool PrintCSVFile(const std::string filename);
+	bool PrintAnyCSVFile(const std::string filename);
 
 	//! @brief Check if the file is at the end.
 	//! @return bool: true if the end, false if not.
@@ -220,7 +225,7 @@ private:
 
 	std::string			mUser;					//!< Name for the class when using CPP_Logger
 	CSVFileInfo			dCSVFileInfo;			//!< Current CSV File
-	std::fstream		mFile;					//!< File stream for in and out
+	std::fstream		mFile;					//!< File stream
 	std::string			mExtension;				//!< File Extension
 	UTILITY_MODE		mMode;					//!< Current mode of the utility
 };

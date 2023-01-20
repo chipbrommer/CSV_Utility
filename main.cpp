@@ -8,7 +8,28 @@ int main()
 {
 
     CSV_Utility csv;
-    csv.PrintCSVFile("test/temp.csv");
+    csv.PrintAnyCSVFile("test/temp.csv");
+
+    csv.SetFileName("test/temp.csv");
+    csv.ChangeCSVUtilityMode(UTILITY_MODE::READ_WRITE_TRUNC);
+    csv.OpenFile();
+
+    std::vector<std::string> cols{ "one", "two", "three" };
+    csv.WriteColumnHeaders(cols);
+
+    std::vector<int> vi{ 1,2,3 };
+    csv.WriteRow(vi);
+
+    std::vector<std::vector<std::string>> tester{ {"a", "b", "c", "d"},
+                                                    {"e", "f", "g", "h"},
+                                                    {"i", "j", "k", "l"},
+                                                    {"m", "n", "o", "p"},
+    };
+    if (csv.WriteAFullCSV("test/any.csv", tester))
+    {
+        printf("\nreturn success");
+    }
+
     /*
     csv.SetFileName("test/temp.csv");
     csv.ChangeCSVUtilityMode(UTILITY_MODE::READ_WRITE_TRUNC);

@@ -116,6 +116,7 @@ int CSV_Utility::WriteColumnHeaders(const std::vector<std::string>& names)
 	// TODO 	
 	/*
 		if not trunc mode, or in append mode and at the top of the file, return fail.
+		or do we want to force insert? <- this could be costly performance wise to copy full content, insert headers, and then place all data back. 
 	*/
 
 	// Make sure file is open and we are in a write mode
@@ -124,6 +125,8 @@ int CSV_Utility::WriteColumnHeaders(const std::vector<std::string>& names)
 	{
 		return -1;
 	}
+
+	// Make sure we are in trunc mode
 
 	// Make sure we are at the top of the file. 
 	mFile.seekg(0, std::ios::beg);
@@ -194,6 +197,7 @@ bool CSV_Utility::ReadColumn(std::vector<std::string>& values, const int column)
 	if (column < 1)
 	{
 #ifdef CPP_LOGGER
+		Log* log = log->GetInstance();
 		log->AddEntry(LOG_LEVEL::LOG_ERROR, mUser, "ReadColumn - Column input must be more than 0");
 #else
 		printf_s("%s - ReadColumn - Column input must be more than 0.\n", mUser.c_str());
@@ -221,7 +225,7 @@ bool CSV_Utility::ReadColumn(std::vector<std::string>& values, const int column)
 				count = ParseCSVBuffer(const_cast<char*>(row.c_str()), temp);
 			}
 
-			values.push_back(temp[column - 1]);
+			values.push_back(temp[static_cast<std::vector<std::string, std::allocator<std::string>>::size_type>(column) - 1]);
 		}
 			
 		// Return to position and return true
@@ -235,6 +239,12 @@ bool CSV_Utility::ReadColumn(std::vector<std::string>& values, const int column)
 	}
 
 	// Default return
+	return false;
+}
+
+bool CSV_Utility::RemoveRow(const int row)
+{
+	// TODO
 	return false;
 }
 
@@ -335,10 +345,62 @@ int CSV_Utility::GetNumberOfRows()
 	return -1;
 }
 
-int CSV_Utility::WriteFullCSV(const std::string filename, const std::vector<std::vector<std::string>>& values)
+bool CSV_Utility::WriteAFullCSV(const std::string filename, const std::vector<std::vector<std::string>>& values)
 {
-	// TODO 
-	return 0;
+	// Get the current file info and save it - then close the file.
+	std::string currFile = dCSVFileInfo.filename;
+	auto currMode = mMode;
+	std::streampos currPos;
+	bool fileOpen = false;
+	char currDelim = dCSVFileInfo.delimiter;
+	if (mFile.is_open())
+	{
+		fileOpen = true;
+		currPos = mFile.tellg();
+		CloseFile();
+	}
+
+	// Set the new file info
+	dCSVFileInfo.filename = filename;
+	mMode = UTILITY_MODE::WRITE_TRUNC;
+	dCSVFileInfo.delimiter = ',';
+
+	// Open the file, if successful, write the data. 
+	if (OpenFile())
+	{
+		for (int i = 0; i < values.size(); i++)
+		{
+			int r = WriteRow(values[i]);
+
+			if (r < 0)
+			{
+				return false;
+			}
+		}
+
+		CloseFile();
+	}
+
+	// Reopen the original file if it was opened. 
+	if (fileOpen)
+	{
+		dCSVFileInfo.filename = currFile;
+		dCSVFileInfo.delimiter = currDelim;
+		mMode = currMode;
+
+		if (OpenFile())
+		{
+			// Return to position
+			mFile.clear();
+			mFile.seekp(currPos);
+			return true;
+		}
+
+		return false;
+	}
+
+	// Default return
+	return true;
 }
 
 int CSV_Utility::ParseCSVBuffer(char* buffer, std::vector<std::string>& values)
@@ -375,7 +437,7 @@ int CSV_Utility::ParseCSVBuffer(char* buffer, std::vector<std::string>& values)
 	return 0;
 }
 
-bool CSV_Utility::ParseCSVFile(const std::string filename, std::vector<std::vector<std::string>>& values)
+bool CSV_Utility::ParseAnyCSVFile(const std::string filename, std::vector<std::vector<std::string>>& values)
 {
 	// Open the file.
 	std::fstream file;
@@ -384,40 +446,20 @@ bool CSV_Utility::ParseCSVFile(const std::string filename, std::vector<std::vect
 	{
 		// grab the data from the file and push into a 2D vector of strings.
 		std::string temp;
-		std::vector<std::vector<std::string>> data;
 		while (std::getline(file, temp))
 		{
-			std::vector<std::string> values;
+			std::vector<std::string> data;
 			char* nextToken = NULL;
 			char* token = strtok_s(const_cast<char*>(temp.c_str()), &dCSVFileInfo.delimiter, &nextToken);
 
 			// While there are more values in the string, attempt to parse at the delimiter
 			while (token != NULL)
 			{
-				values.push_back(token);
+				data.push_back(token);
 				token = strtok_s(NULL, &dCSVFileInfo.delimiter, &nextToken);
 			}
 
-			data.push_back(values);
-		}
-
-		// Print column headers
-		for (int i = 0; i < data[0].size(); i++)
-		{
-			printf("\tCol %d", i + 1);
-		}
-		printf("\n");
-
-		// Print vector data.
-		for (int i = 0; i < data.size(); i++)
-		{
-			printf("Row %d:\t", i + 1);
-			for (int j = 0; j < data[i].size(); j++)
-			{
-				std::string it = data[i][j];
-				printf("%s \t", it.c_str());
-			}
-			printf("\n");
+			values.push_back(data);
 		}
 
 		// Close and return
@@ -462,53 +504,37 @@ void CSV_Utility::PrintCSVData()
 	}
 }
 
-bool CSV_Utility::PrintCSVFile(const std::string filename)
+bool CSV_Utility::PrintAnyCSVFile(const std::string filename)
 {
-	// Open the file.
-	std::fstream file;
-	file.open(filename, UTILITY_MODE::READ);
-	if (file.is_open())
+	// 2D vector to hold the file contents. 
+	std::vector<std::vector<std::string>> data;
+
+	// Open the file and parse, print if successful
+	if(ParseAnyCSVFile(filename, data))
 	{
-		// grab the data from the file and push into a 2D vector of strings.
-		std::string temp;
-		std::vector<std::vector<std::string>> data;
-		while (std::getline(file, temp))
+		if (data.size() > 0)
 		{
-			std::vector<std::string> values;
-			char* nextToken = NULL;
-			char* token = strtok_s(const_cast<char*>(temp.c_str()), &dCSVFileInfo.delimiter, &nextToken);
-
-			// While there are more values in the string, attempt to parse at the delimiter
-			while (token != NULL)
+			// Print column headers
+			for (int i = 0; i < data[0].size(); i++)
 			{
-				values.push_back(token);
-				token = strtok_s(NULL, &dCSVFileInfo.delimiter, &nextToken);
-			}
-
-			data.push_back(values);
-		}
-
-		// Print column headers
-		for (int i = 0; i < data[0].size(); i++)
-		{
-			printf("\tCol %d", i + 1);
-		}
-		printf("\n");
-
-		// Print vector data.
-		for (int i = 0; i < data.size(); i++) 
-		{
-			printf("Row %d:\t", i+1);
-			for (int j = 0; j < data[i].size(); j++)
-			{
-				std::string it = data[i][j];
-				printf("%s \t", it.c_str());
+				printf("\tCol %d", i + 1);
 			}
 			printf("\n");
+
+			// Print vector data.
+			for (int i = 0; i < data.size(); i++)
+			{
+				printf("Row %d:\t", i + 1);
+				for (int j = 0; j < data[i].size(); j++)
+				{
+					std::string it = data[i][j];
+					printf("%s \t", it.c_str());
+				}
+				printf("\n");
+			}
 		}
 
-		// Close and return
-		file.close();
+		// Return true
 		return true;
 	}
 
