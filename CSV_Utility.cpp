@@ -248,6 +248,12 @@ bool CSV_Utility::RemoveRow(const int row)
 	return false;
 }
 
+bool CSV_Utility::RemoveColumn(const int column)
+{
+	// TODO
+	return false;
+}
+
 int CSV_Utility::GetColumnHeaders(std::vector<std::string>& names)
 {
 	// Make sure file is open and we are in a read mode
@@ -524,6 +530,11 @@ bool CSV_Utility::PrintAnyCSVFile(const std::string filename)
 			// Print vector data.
 			for (int i = 0; i < data.size(); i++)
 			{
+				if (data[0].size() < 1)
+				{
+					return false;
+				}
+
 				printf("Row %d:\t", i + 1);
 				for (int j = 0; j < data[i].size(); j++)
 				{
@@ -641,6 +652,12 @@ bool CSV_Utility::OpenFile()
 {
 	// Check if filename has been set.
 	if (dCSVFileInfo.filename.empty())
+	{
+		return false;
+	}
+
+	// Check if we are already opened. 
+	if (mFile.is_open())
 	{
 		return false;
 	}

@@ -139,6 +139,11 @@ public:
 	//! @return bool: True if successful, false if fail. 
 	bool RemoveRow(const int row);
 
+	//! @brief Remove a column of data from the file.
+	//! @param column - [in] - The number of the column to be removed.
+	//! @return bool: True if successful, false if fail. 
+	bool RemoveColumn(const int column);
+
 	//! @brief Get the column headers of a CSV file ( line 1 ). 
 	//! @param names - [out] - a vector of strings to store the parsed column names. 
 	//! @return int: -1 on error, else the number of column names. 
