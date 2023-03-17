@@ -346,6 +346,10 @@ int CSV_Utility::GetNumberOfRows()
 		mFile.seekp(curr_pos);
 		return count;
 	}
+	else
+	{
+		CatchFailReason();
+	}
 
 	// Default return
 	return -1;
@@ -774,10 +778,22 @@ bool CSV_Utility::CloseFile()
 
 void CSV_Utility::CatchFailReason()
 {
-	if (mFile.eof()) { printf("Eof bit set.\n"); }
-	else if (mFile.bad()) { printf("Bad bit set.\n"); }
-	else if (mFile.fail()) { printf("Fail bit set.\n"); }
-	else { printf("Unknown failure.\n"); }
+	if (mFile.eof()) 
+	{ 
+		printf("Eof bit set.\n"); 
+	}
+	else if (mFile.bad()) 
+	{ 
+		printf("Bad bit set.\n"); 
+	}
+	else if (mFile.fail()) 
+	{ 
+		printf("Fail bit set.\n"); 
+	}
+	else 
+	{ 
+		printf("Unknown failure.\n"); 
+	}
 }
 
 void CSV_Utility::UpdateFileInfo()
