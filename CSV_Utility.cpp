@@ -36,7 +36,10 @@ CSV_Utility::CSV_Utility(const std::string filename, const UTILITY_MODE mode = U
 
 CSV_Utility::~CSV_Utility()
 {
-	mFile.close();
+	if (mFile.is_open())
+	{
+		mFile.close();
+	}
 }
 
 int CSV_Utility::SetFileName(const std::string filename)
