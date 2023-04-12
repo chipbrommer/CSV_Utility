@@ -36,7 +36,10 @@ CSV_Utility::CSV_Utility(const std::string filename, const UTILITY_MODE mode = U
 
 CSV_Utility::~CSV_Utility()
 {
-	mFile.close();
+	if (mFile.is_open())
+	{
+		mFile.close();
+	}
 }
 
 int CSV_Utility::SetFileName(const std::string filename)
@@ -381,6 +384,10 @@ int CSV_Utility::GetNumberOfRows()
 		mFile.clear();
 		mFile.seekp(curr_pos);
 		return count;
+	}
+	else
+	{
+		CatchFailReason();
 	}
 
 	// Default return
@@ -810,10 +817,22 @@ bool CSV_Utility::CloseFile()
 
 void CSV_Utility::CatchFailReason()
 {
-	if (mFile.eof()) { printf("Eof bit set.\n"); }
-	else if (mFile.bad()) { printf("Bad bit set.\n"); }
-	else if (mFile.fail()) { printf("Fail bit set.\n"); }
-	else { printf("Unknown failure.\n"); }
+	if (mFile.eof()) 
+	{ 
+		printf("Eof bit set.\n"); 
+	}
+	else if (mFile.bad()) 
+	{ 
+		printf("Bad bit set.\n"); 
+	}
+	else if (mFile.fail()) 
+	{ 
+		printf("Fail bit set.\n"); 
+	}
+	else 
+	{ 
+		printf("Unknown failure.\n"); 
+	}
 }
 
 void CSV_Utility::UpdateFileInfo()
