@@ -20,7 +20,7 @@ int main()
     };
     if (csv.WriteAFullCSV("test/any.csv", tester))
     {
-        printf("\nreturn success");
+        printf("\nreturn success\n\n");
     }
 
     csv.SetFileName("test/temp.csv");

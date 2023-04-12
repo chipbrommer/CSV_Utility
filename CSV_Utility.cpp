@@ -244,13 +244,49 @@ bool CSV_Utility::ReadColumn(std::vector<std::string>& values, const int column)
 
 bool CSV_Utility::RemoveRow(const int row)
 {
+	// Make sure input value is within scope of the file. 
+	if (row < 1 || row > dCSVFileInfo.n_rows)
+	{
+		return false;
+	}
+
 	// TODO
+
+	/*
+	Set file handle to beginning of file
+	Open a temp file.
+	Copy contents into temp file excluding the line desired to be removed. 
+	Close both file handlers.
+	Remove the original file. 
+	Rename the temp file to the original file.
+	Reopen to file handler. 
+	*/
+
 	return false;
 }
 
 bool CSV_Utility::RemoveColumn(const int column)
 {
+	// Make sure input value is within scope of the file. 
+	if (column < 1 || column > dCSVFileInfo.n_cols)
+	{
+		return false; 
+	}
+
 	// TODO
+
+	/*
+	Set file handle to beginning of file.
+	Open a temp file.
+	Get line data and parse into a vector. 
+	Remove the element desired. 
+	Write data to the temp excluding the volumn.
+	Close both handles.
+	Remove the original file.
+	Rename the temp file to the original file.
+	Reopen to file handler.
+	*/
+
 	return false;
 }
 
